@@ -1,0 +1,1323 @@
+
+BUS BOOKING SYSTEM
+RedBus Clone — Complete Implementation Guide
+Angular  •  .NET Web API  •  PostgreSQL
+
+Step-by-Step Build Guide — No Steps Missing
+
+Table of Contents
+Phase 1:  Environment Setup & Project Scaffold
+Phase 2:  Database Design & PostgreSQL Schema
+Phase 3:  Backend — .NET Web API Core
+Phase 4:  Authentication & Authorization (JWT + RBAC)
+Phase 5:  Bus & Route Management APIs
+Phase 6:  Seat Management & Atomic Seat Locking
+Phase 7:  Booking Flow API
+Phase 8:  Payment Integration
+Phase 9:  Email Notifications (SMTP)
+Phase 10:  PDF Ticket Generation
+Phase 11:  Admin Panel APIs
+Phase 12:  Bus Operator APIs
+Phase 13:  Frontend — Angular Project Setup
+Phase 14:  Angular Core Modules & Routing
+Phase 15:  Search & Bus Listing UI
+Phase 16:  Seat Selection UI
+Phase 17:  Booking & Payment UI
+Phase 18:  User Dashboard & History
+Phase 19:  Operator Dashboard UI
+Phase 20:  Admin Dashboard UI
+Phase 21:  Edge Cases & Error Handling
+Phase 22:  Testing Strategy
+Phase 23:  Deployment & Production
+Phase 24:  Future Enhancements
+
+STEP 1
+Phase 1 — Environment Setup & Project Scaffold
+
+1.1 Required Tools to Install
+Tool
+Purpose & Download
+.NET 8 SDK
+Backend API — dotnet.microsoft.com
+Node.js 20 LTS
+Angular CLI runs on Node — nodejs.org
+Angular CLI 17
+ng new, ng generate, ng build — npm install -g @angular/cli
+PostgreSQL 16
+Primary database — postgresql.org
+pgAdmin 4
+PostgreSQL GUI — pgadmin.org
+Redis (optional)
+Seat locking cache — redis.io
+VS Code
+Code editor — code.visualstudio.com
+Visual Studio 2022
+For .NET backend (Community = free)
+Postman
+API testing — postman.com
+Git
+Version control — git-scm.com
+
+1.2 Create Project Folder Structure
+Run these commands in your terminal to set up the root workspace:
+mkdir BusBookingSystem
+cd BusBookingSystem
+mkdir backend frontend docs
+
+1.3 Create .NET Backend Project
+Open Visual Studio 2022 → Create New Project → ASP.NET Core Web API
+Project name: BusBooking.API
+Target framework: .NET 8.0
+Enable OpenAPI (Swagger) support: YES
+Authentication type: None (we add JWT manually)
+Place inside /backend folder
+
+OR use CLI:
+cd backend
+dotnet new webapi -n BusBooking.API --framework net8.0
+cd BusBooking.API
+
+1.4 Install Required NuGet Packages
+Run in the BusBooking.API project folder:
+dotnet add package Microsoft.EntityFrameworkCore.Design
+dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
+dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+dotnet add package BCrypt.Net-Next
+dotnet add package MailKit
+dotnet add package QuestPDF
+dotnet add package StackExchange.Redis  (if using Redis)
+dotnet add package Swashbuckle.AspNetCore
+
+1.5 Create Angular Frontend Project
+cd ../../frontend
+ng new bus-booking-app --routing=true --style=scss
+cd bus-booking-app
+ng add @angular/material
+npm install axios jwt-decode ngx-toastr
+
+1.6 Backend Folder Architecture
+Recommended .NET Project Structure
+BusBooking.API/
+  ├── Controllers/         ← API endpoint controllers
+  ├── Models/              ← Database entity models
+  ├── DTOs/                ← Data Transfer Objects (request/response shapes)
+  ├── Data/                ← DbContext and migrations
+  ├── Services/            ← Business logic layer
+  ├── Interfaces/          ← Service interfaces (IBookingService, etc.)
+  ├── Helpers/             ← JWT helper, email helper, PDF helper
+  ├── Middleware/          ← Custom middleware (error handling, logging)
+  └── appsettings.json     ← Config (DB connection, JWT secret, SMTP)
+
+
+STEP 2
+Phase 2 — Database Design & PostgreSQL Schema
+
+2.1 Create PostgreSQL Database
+Open pgAdmin 4 or psql terminal
+Create database: CREATE DATABASE busbooking;
+Create user: CREATE USER busadmin WITH PASSWORD 'yourpassword';
+Grant permissions: GRANT ALL PRIVILEGES ON DATABASE busbooking TO busadmin;
+
+2.2 Complete Database Schema — All Tables
+The following tables form the complete data model. Create them in order due to foreign key dependencies.
+
+Table 1: Users
+Users Table — Stores all roles: customer, operator, admin
+id            SERIAL PRIMARY KEY
+name          VARCHAR(100) NOT NULL
+email         VARCHAR(150) UNIQUE NOT NULL
+password_hash VARCHAR(255) NOT NULL
+phone         VARCHAR(20)
+role          VARCHAR(20) NOT NULL  -- 'customer', 'operator', 'admin'
+is_active     BOOLEAN DEFAULT TRUE
+is_verified   BOOLEAN DEFAULT FALSE
+created_at    TIMESTAMP DEFAULT NOW()
+
+Table 2: Buses
+Buses Table — Each bus belongs to an operator
+id            SERIAL PRIMARY KEY
+operator_id   INT REFERENCES Users(id)
+bus_number    VARCHAR(20) UNIQUE NOT NULL   -- e.g. TN01AB1234
+bus_name      VARCHAR(100)
+capacity      INT NOT NULL
+bus_type      VARCHAR(30)   -- 'AC', 'Non-AC', 'Sleeper', 'Semi-Sleeper'
+seat_layout   VARCHAR(10)   -- '2x2', '2x1', '1x1'
+is_active     BOOLEAN DEFAULT TRUE
+created_at    TIMESTAMP DEFAULT NOW()
+
+Table 3: Routes
+Routes Table — Admin creates routes; operators assign buses
+id            SERIAL PRIMARY KEY
+source        VARCHAR(100) NOT NULL
+destination   VARCHAR(100) NOT NULL
+distance_km   INT
+created_at    TIMESTAMP DEFAULT NOW()
+
+Table 4: BoardingPoints
+BoardingPoints Table — Pickup/drop points on a route
+id            SERIAL PRIMARY KEY
+route_id      INT REFERENCES Routes(id)
+point_name    VARCHAR(100)
+point_type    VARCHAR(10)   -- 'boarding' or 'dropping'
+sequence_no   INT           -- order along the route
+
+Table 5: Trips
+Trips Table — A specific bus running on a route on a given date/time
+id              SERIAL PRIMARY KEY
+bus_id          INT REFERENCES Buses(id)
+route_id        INT REFERENCES Routes(id)
+departure_time  TIMESTAMP NOT NULL
+arrival_time    TIMESTAMP NOT NULL
+base_fare       DECIMAL(10,2) NOT NULL
+tax_percent     DECIMAL(5,2) DEFAULT 5.0
+status          VARCHAR(20) DEFAULT 'scheduled'  -- scheduled, cancelled, completed
+created_at      TIMESTAMP DEFAULT NOW()
+
+Table 6: Seats
+Seats Table — Physical seats belonging to a bus
+id            SERIAL PRIMARY KEY
+bus_id        INT REFERENCES Buses(id)
+seat_number   VARCHAR(10) NOT NULL   -- e.g. A1, B2, L1 (L=lower berth)
+seat_type     VARCHAR(20)            -- 'window', 'aisle', 'lower', 'upper'
+is_active     BOOLEAN DEFAULT TRUE
+
+Table 7: TripSeatStatus
+TripSeatStatus Table — Availability of each seat per trip
+id            SERIAL PRIMARY KEY
+trip_id       INT REFERENCES Trips(id)
+seat_id       INT REFERENCES Seats(id)
+status        VARCHAR(20) DEFAULT 'available'   -- available, booked, locked
+locked_by     INT REFERENCES Users(id)          -- NULL if not locked
+locked_until  TIMESTAMP                         -- expiry of 5-min lock
+UNIQUE(trip_id, seat_id)
+
+Table 8: Bookings
+Bookings Table — A booking header (one booking = one or more seats)
+id              SERIAL PRIMARY KEY
+user_id         INT REFERENCES Users(id)
+trip_id         INT REFERENCES Trips(id)
+booking_ref     VARCHAR(20) UNIQUE   -- e.g. BK20240001
+status          VARCHAR(20) DEFAULT 'pending'   -- pending, confirmed, cancelled
+total_amount    DECIMAL(10,2)
+booked_at       TIMESTAMP DEFAULT NOW()
+cancelled_at    TIMESTAMP
+
+Table 9: BookingPassengers
+BookingPassengers Table — Passenger details per seat in a booking
+id            SERIAL PRIMARY KEY
+booking_id    INT REFERENCES Bookings(id)
+seat_id       INT REFERENCES Seats(id)
+passenger_name VARCHAR(100) NOT NULL
+passenger_age  INT
+passenger_gender VARCHAR(10)
+
+Table 10: Payments
+Payments Table — Payment record for each booking
+id              SERIAL PRIMARY KEY
+booking_id      INT REFERENCES Bookings(id)
+amount          DECIMAL(10,2)
+gateway         VARCHAR(30)   -- 'razorpay', 'stripe', 'dummy'
+transaction_id  VARCHAR(100)  -- returned by gateway
+status          VARCHAR(20)   -- 'success', 'failed', 'pending', 'refunded'
+paid_at         TIMESTAMP
+
+2.3 Configure appsettings.json
+In BusBooking.API/appsettings.json, add your database connection:
+appsettings.json — Connection Configuration
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=busbooking;Username=busadmin;Password=yourpassword"
+  },
+  "JwtSettings": {
+    "Secret": "YourSuperSecretKeyMustBe32CharsLong!!",
+    "Issuer": "BusBookingAPI",
+    "Audience": "BusBookingClient",
+    "ExpiryDays": 7
+  },
+  "SmtpSettings": {
+    "Host": "smtp.gmail.com",
+    "Port": 587,
+    "Username": "youremail@gmail.com",
+    "Password": "your-app-password"
+  }
+}
+
+
+STEP 3
+Phase 3 — Backend .NET Web API — Core Setup
+
+3.1 Create Entity Models (Models/ folder)
+Create one C# class per database table. Example for User model:
+Models/User.cs
+public class User {
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string PasswordHash { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string Role { get; set; } = "customer";
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    // Navigation properties
+    public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+}
+Repeat this pattern for all 10 tables: Bus, Route, BoardingPoint, Trip, Seat, TripSeatStatus, Booking, BookingPassenger, Payment.
+
+3.2 Create DbContext (Data/ folder)
+Data/AppDbContext.cs
+public class AppDbContext : DbContext {
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
+
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Bus> Buses => Set<Bus>();
+    public DbSet<Route> Routes => Set<Route>();
+    public DbSet<Trip> Trips => Set<Trip>();
+    public DbSet<Seat> Seats => Set<Seat>();
+    public DbSet<TripSeatStatus> TripSeatStatuses => Set<TripSeatStatus>();
+    public DbSet<Booking> Bookings => Set<Booking>();
+    public DbSet<BookingPassenger> BookingPassengers => Set<BookingPassenger>();
+    public DbSet<Payment> Payments => Set<Payment>();
+
+    protected override void OnModelCreating(ModelBuilder mb) {
+        mb.Entity<TripSeatStatus>().HasIndex(t => new { t.TripId, t.SeatId }).IsUnique();
+    }
+}
+
+3.3 Register Services in Program.cs
+Program.cs — Register all services
+builder.Services.AddDbContext<AppDbContext>(opts =>
+    opts.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(opts => { /* JWT config here */ });
+
+builder.Services.AddAuthorization();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IBusService, BusService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddSingleton<IConnectionMultiplexer>(   // Redis
+    ConnectionMultiplexer.Connect("localhost:6379"));
+
+builder.Services.AddCors(opts => opts.AddDefaultPolicy(p =>
+    p.WithOrigins("http://localhost:4200").AllowAnyHeader().AllowAnyMethod()));
+
+var app = builder.Build();
+app.UseCors(); app.UseAuthentication(); app.UseAuthorization();
+app.MapControllers(); app.Run();
+
+3.4 Run Entity Framework Migrations
+cd backend/BusBooking.API
+dotnet ef migrations add InitialCreate
+dotnet ef database update
+This creates all tables in PostgreSQL automatically from your models.
+
+
+STEP 4
+Phase 4 — Authentication & Authorization (JWT + RBAC)
+
+4.1 Auth DTOs
+DTOs/Auth/RegisterDto.cs & LoginDto.cs
+// RegisterDto.cs
+public class RegisterDto {
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string Role { get; set; } = "customer";
+}
+
+// LoginDto.cs
+public class LoginDto {
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+
+4.2 JWT Token Helper
+Helpers/JwtHelper.cs
+public string GenerateToken(User user) {
+    var claims = new[] {
+        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+        new Claim(ClaimTypes.Email, user.Email),
+        new Claim(ClaimTypes.Role, user.Role)
+    };
+    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JwtSettings:Secret"]!));
+    var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+    var token = new JwtSecurityToken(
+        issuer: _config["JwtSettings:Issuer"],
+        audience: _config["JwtSettings:Audience"],
+        claims: claims,
+        expires: DateTime.UtcNow.AddDays(7),
+        signingCredentials: creds);
+    return new JwtSecurityTokenHandler().WriteToken(token);
+}
+
+4.3 Auth Service (Register + Login Logic)
+Services/AuthService.cs — Key methods
+// Register
+public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto) {
+    if (await _db.Users.AnyAsync(u => u.Email == dto.Email))
+        throw new Exception("Email already registered");
+    var user = new User {
+        Name = dto.Name, Email = dto.Email, Phone = dto.Phone,
+        Role = dto.Role,
+        PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+    };
+    _db.Users.Add(user); await _db.SaveChangesAsync();
+    return new AuthResponseDto { Token = _jwt.GenerateToken(user), Role = user.Role };
+}
+
+// Login
+public async Task<AuthResponseDto> LoginAsync(LoginDto dto) {
+    var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+    if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+        throw new Exception("Invalid credentials");
+    return new AuthResponseDto { Token = _jwt.GenerateToken(user), Role = user.Role };
+}
+
+4.4 Auth Controller
+Controllers/AuthController.cs
+[ApiController] [Route("api/auth")]
+public class AuthController : ControllerBase {
+    [HttpPost("register")] public async Task<IActionResult> Register(RegisterDto dto) { ... }
+    [HttpPost("login")]    public async Task<IActionResult> Login(LoginDto dto) { ... }
+    [HttpGet("me")] [Authorize] public IActionResult Me() => Ok(User.Claims); 
+}
+
+4.5 Role-Based Protection on Controllers
+Using [Authorize(Roles = "...")] attribute
+[Authorize(Roles = "admin")]
+public class AdminController : ControllerBase { }
+
+[Authorize(Roles = "operator")]
+public class OperatorController : ControllerBase { }
+
+[Authorize]  // Any logged-in user
+public class BookingController : ControllerBase { }
+
+
+STEP 5
+Phase 5 — Bus & Route Management APIs
+
+5.1 Bus Management (Operator)
+Create BusController with these endpoints:
+Endpoint
+Description
+GET /api/buses
+List all active buses (public)
+GET /api/buses/{id}
+Get one bus details
+POST /api/buses
+Add a new bus (operator only)
+PUT /api/buses/{id}
+Edit bus details (operator only)
+DELETE /api/buses/{id}
+Soft delete — set is_active = false
+GET /api/buses/operator/my-buses
+Get buses owned by logged-in operator
+
+5.2 Bus DTO
+DTOs/Bus/CreateBusDto.cs
+public class CreateBusDto {
+    public string BusNumber { get; set; } = string.Empty;  // Unique
+    public string BusName { get; set; } = string.Empty;
+    public int Capacity { get; set; }
+    public string BusType { get; set; } = string.Empty;  // AC/Non-AC/Sleeper
+    public string SeatLayout { get; set; } = "2x2";
+}
+
+5.3 Auto-Generate Seats on Bus Creation
+BusService.cs — CreateBusAsync method (important logic)
+// After saving the bus, auto-generate seats based on capacity and layout
+var seats = new List<Seat>();
+for (int i = 1; i <= dto.Capacity; i++) {
+    seats.Add(new Seat {
+        BusId = newBus.Id,
+        SeatNumber = GenerateSeatLabel(i, dto.SeatLayout),
+        SeatType = GetSeatType(i, dto.SeatLayout)
+    });
+}
+_db.Seats.AddRange(seats);
+await _db.SaveChangesAsync();
+
+5.4 Route Management (Admin)
+Endpoint
+Description
+GET /api/routes
+List all routes (public)
+POST /api/routes
+Create route (admin only)
+PUT /api/routes/{id}
+Update route (admin only)
+DELETE /api/routes/{id}
+Delete route (admin only)
+POST /api/routes/{id}/boarding-points
+Add boarding/dropping points
+
+5.5 Trip Management (Operator)
+Trips link a Bus to a Route for a specific datetime. Operators schedule trips.
+Endpoint
+Description
+GET /api/trips/search
+Search by source, destination, date (main search feature)
+POST /api/trips
+Create a new trip schedule (operator)
+PUT /api/trips/{id}
+Update trip timing or pricing
+PUT /api/trips/{id}/cancel
+Cancel a trip
+GET /api/trips/{id}/seats
+Get seat availability for a trip
+
+5.6 Trip Search Logic — Key Algorithm
+TripService.cs — SearchTripsAsync
+public async Task<List<TripDto>> SearchTripsAsync(string source, string dest, DateTime date) {
+    return await _db.Trips
+        .Include(t => t.Bus)
+        .Include(t => t.Route)
+        .Where(t =>
+            t.Route.Source.ToLower() == source.ToLower() &&
+            t.Route.Destination.ToLower() == dest.ToLower() &&
+            t.DepartureTime.Date == date.Date &&
+            t.Status == "scheduled")
+        .Select(t => new TripDto {
+            TripId = t.Id,
+            BusName = t.Bus.BusName,
+            BusType = t.Bus.BusType,
+            DepartureTime = t.DepartureTime,
+            ArrivalTime = t.ArrivalTime,
+            TotalFare = t.BaseFare + (t.BaseFare * t.TaxPercent / 100),
+            AvailableSeats = t.Bus.Capacity - _db.TripSeatStatuses
+                .Count(ss => ss.TripId == t.Id && ss.Status == "booked")
+        }).ToListAsync();
+}
+
+
+STEP 6
+Phase 6 — Seat Management & Atomic Seat Locking
+
+WHY Seat Locking is Critical
+Problem: Two users select the same seat simultaneously → both pay → double booking (revenue & trust loss).
+Solution: When a user selects a seat, IMMEDIATELY lock it for 5 minutes in the database (or Redis).
+If payment is not completed within 5 minutes, the lock expires and the seat becomes available again.
+This lock must be ATOMIC — use a database transaction to prevent race conditions.
+
+6.1 Seat Lock Flow (Step by Step)
+User calls POST /api/seats/lock with { tripId, seatIds[], userId }
+Backend begins a DB transaction
+For EACH seat, check TripSeatStatus: is status = 'available'?
+If ANY seat is not available → rollback transaction → return error
+If ALL seats available → set status = 'locked', locked_by = userId, locked_until = NOW() + 5 min
+Commit transaction → return success with lock expiry time
+Frontend shows 5-minute countdown timer
+Background job (or check-on-use): if locked_until < NOW() → reset to 'available'
+
+6.2 Seat Lock Service — Transaction Code
+Services/SeatService.cs — LockSeatsAsync
+public async Task<bool> LockSeatsAsync(int tripId, int[] seatIds, int userId) {
+    using var tx = await _db.Database.BeginTransactionAsync(
+        IsolationLevel.Serializable);  // ← IMPORTANT for atomicity
+    try {
+        var statuses = await _db.TripSeatStatuses
+            .Where(s => s.TripId == tripId && seatIds.Contains(s.SeatId))
+            .ToListAsync();
+
+        // Check all must be available
+        if (statuses.Any(s => s.Status != "available"))
+            throw new Exception("One or more seats are no longer available");
+
+        foreach (var seat in statuses) {
+            seat.Status = "locked";
+            seat.LockedBy = userId;
+            seat.LockedUntil = DateTime.UtcNow.AddMinutes(5);
+        }
+        await _db.SaveChangesAsync();
+        await tx.CommitAsync();
+        return true;
+    } catch { await tx.RollbackAsync(); throw; }
+}
+
+6.3 Expired Lock Cleanup (Background Service)
+BackgroundServices/SeatUnlockJob.cs — runs every minute
+protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
+    while (!stoppingToken.IsCancellationRequested) {
+        await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+        var expired = await _db.TripSeatStatuses
+            .Where(s => s.Status == "locked" && s.LockedUntil < DateTime.UtcNow)
+            .ToListAsync();
+        expired.ForEach(s => { s.Status = "available"; s.LockedBy = null; s.LockedUntil = null; });
+        await _db.SaveChangesAsync();
+    }
+}
+// Register in Program.cs: builder.Services.AddHostedService<SeatUnlockJob>();
+
+
+STEP 7
+Phase 7 — Booking Flow API
+
+7.1 Complete Booking Flow (6 Steps)
+Step
+What Happens
+1. Search
+GET /api/trips/search — User finds available buses
+2. View Seats
+GET /api/trips/{id}/seats — Show seat layout with statuses
+3. Lock Seats
+POST /api/seats/lock — Reserve seats for 5 mins (atomic)
+4. Create Booking
+POST /api/bookings — Create pending booking + passenger details
+5. Process Payment
+POST /api/payments/initiate — Redirects to payment gateway
+6. Confirm Booking
+POST /api/payments/webhook — Gateway calls back; mark confirmed
+
+7.2 Create Booking DTO
+DTOs/Booking/CreateBookingDto.cs
+public class CreateBookingDto {
+    public int TripId { get; set; }
+    public List<PassengerDto> Passengers { get; set; } = new();
+}
+
+public class PassengerDto {
+    public int SeatId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public int Age { get; set; }
+    public string Gender { get; set; } = string.Empty;
+}
+
+7.3 Booking Service Logic
+Services/BookingService.cs — CreateBookingAsync
+public async Task<BookingResponseDto> CreateBookingAsync(CreateBookingDto dto, int userId) {
+    // 1. Verify all seats are still locked by THIS user
+    var seatIds = dto.Passengers.Select(p => p.SeatId).ToArray();
+    var locks = await _db.TripSeatStatuses
+        .Where(s => s.TripId == dto.TripId && seatIds.Contains(s.SeatId))
+        .ToListAsync();
+    if (locks.Any(l => l.Status != "locked" || l.LockedBy != userId))
+        throw new Exception("Seat lock expired or invalid");
+
+    // 2. Calculate fare
+    var trip = await _db.Trips.FindAsync(dto.TripId);
+    var totalFare = trip!.BaseFare * dto.Passengers.Count;
+    totalFare += totalFare * trip.TaxPercent / 100;
+
+    // 3. Create booking (status = pending)
+    var booking = new Booking {
+        UserId = userId, TripId = dto.TripId,
+        BookingRef = GenerateRef(),
+        TotalAmount = totalFare, Status = "pending"
+    };
+    _db.Bookings.Add(booking); await _db.SaveChangesAsync();
+
+    // 4. Add passengers
+    foreach (var p in dto.Passengers) { /* add BookingPassenger rows */ }
+    await _db.SaveChangesAsync();
+
+    return new BookingResponseDto { BookingId = booking.Id, BookingRef = booking.BookingRef, TotalFare = totalFare };
+}
+
+7.4 Cancellation Logic
+Services/BookingService.cs — CancelBookingAsync
+public async Task CancelBookingAsync(int bookingId, int userId) {
+    var booking = await _db.Bookings.Include(b => b.Trip)
+        .FirstOrDefaultAsync(b => b.Id == bookingId && b.UserId == userId);
+
+    if (booking == null) throw new Exception("Booking not found");
+    if (booking.Status != "confirmed") throw new Exception("Cannot cancel");
+
+    // Rule: Must be 24+ hours before departure
+    var hoursLeft = (booking.Trip.DepartureTime - DateTime.UtcNow).TotalHours;
+    if (hoursLeft < 24) throw new Exception("Cancellation window closed (< 24 hours)");
+
+    booking.Status = "cancelled";
+    booking.CancelledAt = DateTime.UtcNow;
+
+    // Release seats back to available
+    var seatStatuses = await _db.TripSeatStatuses
+        .Where(s => s.TripId == booking.TripId &&
+            _db.BookingPassengers.Where(bp => bp.BookingId == bookingId)
+                .Select(bp => bp.SeatId).Contains(s.SeatId))
+        .ToListAsync();
+    seatStatuses.ForEach(s => { s.Status = "available"; s.LockedBy = null; });
+    await _db.SaveChangesAsync();
+    // Trigger refund process here
+}
+
+
+STEP 8
+Phase 8 — Payment Integration
+
+8.1 Two Options: Dummy or Real Gateway
+Option
+When to Use
+Dummy Payment Page
+Development / demo purposes — just a form that marks payment as success
+Razorpay Integration
+Indian market — test keys available free at razorpay.com/docs
+Stripe Integration
+International — test keys available at stripe.com/docs
+
+8.2 Dummy Payment Flow (Development)
+POST /api/payments/dummy-pay  { bookingId }
+Backend creates Payment record with status = 'success'
+Backend marks Booking status = 'confirmed'
+Backend marks all seats as status = 'booked'
+Backend sends confirmation email
+Backend returns booking confirmation DTO
+
+8.3 Razorpay Integration (Production)
+Payment Flow with Razorpay
+STEP 1: POST /api/payments/create-order
+    → Call Razorpay API to create an order
+    → Returns order_id to frontend
+
+STEP 2: Frontend loads Razorpay checkout widget
+    → User enters card/UPI/wallet details on Razorpay's page
+    → On success, Razorpay sends: razorpay_order_id, razorpay_payment_id, razorpay_signature
+
+STEP 3: POST /api/payments/verify
+    → Backend verifies signature using HMAC SHA256
+    → If valid → mark booking confirmed, seats booked
+    → If invalid → reject
+
+NuGet: Razorpay (dotnet add package Razorpay)
+
+8.4 Payment Service Code (Dummy)
+Services/PaymentService.cs
+public async Task<PaymentResponseDto> ProcessDummyPaymentAsync(int bookingId, int userId) {
+    var booking = await _db.Bookings.FindAsync(bookingId);
+    if (booking!.UserId != userId) throw new UnauthorizedAccessException();
+
+    var payment = new Payment {
+        BookingId = bookingId, Amount = booking.TotalAmount,
+        Gateway = "dummy", TransactionId = Guid.NewGuid().ToString(),
+        Status = "success", PaidAt = DateTime.UtcNow
+    };
+    _db.Payments.Add(payment);
+    booking.Status = "confirmed";
+
+    // Mark all seats as booked
+    var passengers = await _db.BookingPassengers
+        .Where(p => p.BookingId == bookingId).ToListAsync();
+    var seatIds = passengers.Select(p => p.SeatId).ToArray();
+    var seats = await _db.TripSeatStatuses
+        .Where(s => s.TripId == booking.TripId && seatIds.Contains(s.SeatId)).ToListAsync();
+    seats.ForEach(s => { s.Status = "booked"; s.LockedBy = null; s.LockedUntil = null; });
+    await _db.SaveChangesAsync();
+
+    await _emailService.SendBookingConfirmationAsync(booking);
+    return new PaymentResponseDto { Success = true, BookingRef = booking.BookingRef };
+}
+
+
+STEP 9
+Phase 9 — Email Notifications (SMTP via MailKit)
+
+9.1 Email Service Setup
+Services/EmailService.cs — MailKit Setup
+public async Task SendBookingConfirmationAsync(Booking booking) {
+    var message = new MimeMessage();
+    message.From.Add(new MailboxAddress("Bus Booking", _config["SmtpSettings:Username"]));
+    message.To.Add(new MailboxAddress(booking.User.Name, booking.User.Email));
+    message.Subject = $"Booking Confirmed — {booking.BookingRef}";
+
+    var builder = new BodyBuilder();
+    builder.HtmlBody = BuildConfirmationEmailHtml(booking);
+    message.Body = builder.ToMessageBody();
+
+    using var client = new SmtpClient();
+    await client.ConnectAsync(_config["SmtpSettings:Host"],
+        int.Parse(_config["SmtpSettings:Port"]!), SecureSocketOptions.StartTls);
+    await client.AuthenticateAsync(
+        _config["SmtpSettings:Username"], _config["SmtpSettings:Password"]);
+    await client.SendAsync(message);
+    await client.DisconnectAsync(true);
+}
+
+9.2 Email Triggers
+Event
+Email Content
+Booking Confirmed
+Booking ref, bus details, seats, total fare, departure time
+Booking Cancelled
+Confirmation of cancellation, refund amount and timeline
+Operator Approved
+Welcome email to operator with login instructions
+New Booking (Operator)
+Notification to operator that a booking was made on their bus
+
+
+STEP 10
+Phase 10 — PDF Ticket Generation (QuestPDF)
+
+10.1 Install and Setup QuestPDF
+dotnet add package QuestPDF
+QuestPDF is free for small projects and creates professional PDFs in .NET without HTML templates.
+
+10.2 Ticket PDF Structure
+What the PDF Ticket Should Include
+Header:   Bus Booking System logo, Company name
+Section 1: BOOKING REFERENCE (large, bold) — e.g. BK20240001
+Section 2: Journey Details — From / To / Date / Bus Name / Bus Type
+Section 3: Departure Time / Arrival Time / Duration
+Section 4: Passenger Table (Name, Age, Gender, Seat No.)
+Section 5: Fare Breakdown (Base Fare + Tax = Total)
+Section 6: Boarding Point address
+Footer:   'This is a computer-generated ticket. Valid with Photo ID.'
+Optional: QR code encoding booking reference
+
+10.3 PDF Endpoint
+Controllers/BookingController.cs — Download Ticket
+[HttpGet("{bookingId}/ticket")]
+[Authorize]
+public async Task<IActionResult> DownloadTicket(int bookingId) {
+    var booking = await _bookingService.GetBookingWithDetailsAsync(bookingId);
+    var pdfBytes = _pdfService.GenerateTicketPdf(booking);
+    return File(pdfBytes, "application/pdf",
+        $"ticket-{booking.BookingRef}.pdf");
+}
+
+
+STEP 11
+Phase 11 — Admin Panel APIs
+
+11.1 Admin Controller Endpoints
+Endpoint
+Function
+GET /api/admin/operators
+List all operators with status
+PUT /api/admin/operators/{id}/approve
+Approve a pending operator
+PUT /api/admin/operators/{id}/reject
+Reject an operator application
+PUT /api/admin/operators/{id}/block
+Block active operator
+PUT /api/admin/operators/{id}/unblock
+Unblock an operator
+GET /api/admin/bookings
+View all bookings (paginated)
+GET /api/admin/reports/daily
+Daily booking count and revenue
+GET /api/admin/reports/revenue-by-operator
+Revenue per operator
+GET /api/admin/reports/seat-occupancy
+Average seat fill rate
+GET /api/admin/routes
+All routes with trip counts
+POST /api/admin/routes
+Create new route
+
+11.2 Operator Approval Logic
+Services/AdminService.cs — ApproveOperatorAsync
+public async Task ApproveOperatorAsync(int operatorId) {
+    var user = await _db.Users.FindAsync(operatorId);
+    if (user == null || user.Role != "operator")
+        throw new Exception("User not found or not an operator");
+    user.IsActive = true;
+    await _db.SaveChangesAsync();
+    await _emailService.SendOperatorApprovalEmailAsync(user);
+}
+
+
+STEP 12
+Phase 12 — Bus Operator APIs
+
+12.1 Operator Controller Endpoints
+Endpoint
+Function
+GET /api/operator/buses
+List this operator's buses
+POST /api/operator/buses
+Add new bus
+PUT /api/operator/buses/{id}
+Edit bus
+PUT /api/operator/buses/{id}/block
+Temporarily block bus from booking
+GET /api/operator/trips
+List trips for this operator's buses
+POST /api/operator/trips
+Schedule a new trip
+PUT /api/operator/trips/{id}/pricing
+Update trip base fare
+GET /api/operator/bookings
+View all bookings on this operator's buses
+GET /api/operator/dashboard
+Summary: total buses, trips, bookings, revenue
+
+
+STEP 13
+Phase 13 — Frontend Angular Project Setup
+
+13.1 Angular Project Structure
+Recommended Angular src/ folder structure
+src/app/
+  ├── core/
+  │   ├── guards/          ← AuthGuard, RoleGuard
+  │   ├── interceptors/    ← JwtInterceptor, ErrorInterceptor
+  │   ├── models/          ← TypeScript interfaces (User, Bus, Booking, etc.)
+  │   └── services/        ← AuthService, BusService, BookingService, etc.
+  ├── shared/
+  │   ├── components/      ← Reusable: Header, Footer, Loader, Modal
+  │   └── pipes/           ← CurrencyPipe, DateFormatPipe
+  ├── features/
+  │   ├── auth/            ← Login, Register pages
+  │   ├── home/            ← Landing page with search form
+  │   ├── search/          ← Bus listing results
+  │   ├── booking/         ← Seat selection, passenger details, payment
+  │   ├── dashboard/       ← User booking history, profile
+  │   ├── operator/        ← Operator panel pages
+  │   └── admin/           ← Admin panel pages
+  └── app.routes.ts        ← All application routes
+
+13.2 Environment Configuration
+src/environments/environment.ts
+export const environment = {
+  production: false,
+  apiUrl: 'http://localhost:5000/api'
+};
+
+// src/environments/environment.prod.ts
+export const environment = {
+  production: true,
+  apiUrl: 'https://your-production-api.com/api'
+};
+
+13.3 JWT Interceptor (Auto-attach token to every request)
+core/interceptors/jwt.interceptor.ts
+export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    req = req.clone({ headers: req.headers.set('Authorization', `Bearer ${token}`) });
+  }
+  return next(req);
+};
+
+// Register in app.config.ts:
+provideHttpClient(withInterceptors([jwtInterceptor]))
+
+
+STEP 14
+Phase 14 — Angular Routing & Guards
+
+14.1 Complete Route Configuration
+app.routes.ts — All application routes
+export const routes: Routes = [
+  { path: '', component: HomeComponent },
+  { path: 'login', component: LoginComponent },
+  { path: 'register', component: RegisterComponent },
+  { path: 'search', component: SearchResultsComponent },
+  { path: 'booking/:tripId', component: SeatSelectionComponent, canActivate: [AuthGuard] },
+  { path: 'booking/passengers/:tripId', component: PassengerFormComponent, canActivate: [AuthGuard] },
+  { path: 'payment/:bookingId', component: PaymentComponent, canActivate: [AuthGuard] },
+  { path: 'booking/success/:bookingId', component: BookingSuccessComponent },
+  { path: 'dashboard', component: UserDashboardComponent, canActivate: [AuthGuard] },
+  { path: 'profile', component: ProfileComponent, canActivate: [AuthGuard] },
+  { path: 'operator', loadChildren: () => import('./features/operator/operator.routes') },
+    // canActivate: [RoleGuard] with role: 'operator'
+  { path: 'admin', loadChildren: () => import('./features/admin/admin.routes') },
+    // canActivate: [RoleGuard] with role: 'admin'
+  { path: '**', component: NotFoundComponent }
+];
+
+14.2 Auth Guard
+core/guards/auth.guard.ts
+export const AuthGuard: CanActivateFn = () => {
+  const router = inject(Router);
+  const token = localStorage.getItem('token');
+  if (!token) {
+    router.navigate(['/login']);
+    return false;
+  }
+  return true;
+};
+
+14.3 Role Guard
+core/guards/role.guard.ts
+export const RoleGuard: CanActivateFn = (route) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+  const requiredRole = route.data['role'];
+  const userRole = authService.getCurrentUserRole();
+  if (userRole !== requiredRole) {
+    router.navigate(['/']);
+    return false;
+  }
+  return true;
+};
+
+
+STEP 15
+Phase 15 — Search & Bus Listing UI
+
+15.1 Home Page — Search Form
+The home page search form is the primary entry point. Build it with Angular Reactive Forms.
+Search Form Fields
+From City      → Text input with autocomplete (call GET /api/routes for suggestions)
+To City        → Text input with autocomplete
+Date           → Date picker (mat-datepicker), disable past dates
+Search Button  → Validates form, navigates to /search?from=X&to=Y&date=Z
+
+15.2 Search Results Page
+Read query params, call GET /api/trips/search, show results with filter sidebar.
+Bus Card should display
+Bus name and type (AC / Non-AC / Sleeper badge)
+Departure time → Arrival time (with duration)
+Available seats count
+Price (clearly: Base fare + taxes = Total)
+BOOK NOW button → navigates to /booking/:tripId
+
+15.3 Filter Sidebar
+Price range slider (min/max fare)
+Bus type checkboxes: AC, Non-AC, Sleeper, Semi-Sleeper
+Departure time: Morning, Afternoon, Evening, Night
+Sort by: Price Low-High, Departure Time, Duration
+
+STEP 16
+Phase 16 — Seat Selection UI
+
+16.1 Seat Layout Component
+How to Render the Seat Grid
+1. Call GET /api/trips/{id}/seats → get array of { seatId, seatNumber, status, seatType }
+2. Group seats by row based on layout (2x2, 2x1, etc.)
+3. Render a grid using CSS Grid or Flexbox
+4. Color code:
+   - Green  → Available (clickable)
+   - Red    → Booked (disabled)
+   - Yellow → Locked by another user (disabled)
+   - Blue   → Selected by current user
+5. On click → add to selectedSeats[] array
+6. Show: Selected Seats list, Total Fare calculation, 'Continue' button
+7. On 'Continue' → call POST /api/seats/lock → if success, go to passenger form
+
+16.2 5-Minute Countdown Timer
+CountdownTimerComponent — TypeScript Logic
+ngOnInit() {
+  this.lockExpiryTime = new Date(Date.now() + 5 * 60 * 1000);
+  this.interval = setInterval(() => {
+    const secondsLeft = Math.floor((this.lockExpiryTime.getTime() - Date.now()) / 1000);
+    if (secondsLeft <= 0) {
+      clearInterval(this.interval);
+      this.showTimeoutModal();  // seats released
+    } else {
+      this.minutes = Math.floor(secondsLeft / 60);
+      this.seconds = secondsLeft % 60;
+    }
+  }, 1000);
+}
+
+
+STEP 17
+Phase 17 — Booking & Payment UI
+
+17.1 Passenger Details Form
+For each selected seat, show one form group: Name, Age, Gender.
+PassengerFormComponent Logic
+1. Show one form group per selected seat (dynamic form array)
+2. Validate: all names required, age must be 1-120, gender required
+3. Show fare summary (seats × price + tax = total)
+4. 'Proceed to Payment' button → calls POST /api/bookings
+5. On success → navigate to /payment/:bookingId
+
+17.2 Payment Page
+PaymentComponent Options
+DUMMY (Development):
+  - Show booking summary with amount
+  - 'Pay Now (Test)' button
+  - On click → POST /api/payments/dummy-pay
+  - On success → navigate to /booking/success/:bookingId
+
+RAZORPAY (Production):
+  - Load Razorpay SDK via script tag
+  - On init → POST /api/payments/create-order → get orderId
+  - Open Razorpay checkout widget
+  - On payment success → POST /api/payments/verify with payment details
+
+17.3 Booking Success Page
+Show: Booking reference, journey details, passenger summary, and two buttons:
+Download Ticket (PDF) — calls GET /api/bookings/{id}/ticket
+Go to My Bookings
+
+STEP 18
+Phase 18 — User Dashboard & History
+
+Section
+Content to Show
+Upcoming Trips
+Confirmed bookings with departure in the future — show ticket download
+Completed Trips
+Bookings with departure in the past
+Cancelled Bookings
+Cancelled bookings with refund status
+Profile Section
+Edit name, email, phone. Change password form.
+
+STEP 19
+Phase 19 — Operator Dashboard UI
+
+Page
+Content
+Dashboard Home
+Stats: Total buses, active trips, total bookings today, revenue
+My Buses
+List all buses, add/edit/delete bus, toggle block status
+Schedule Trips
+Select bus → select route → set departure/arrival time, fare
+My Bookings
+All bookings on operator's buses — filter by date/bus/status
+Pricing
+Edit base fare per trip — show tax breakdown preview
+
+STEP 20
+Phase 20 — Admin Dashboard UI
+
+Page
+Content
+Dashboard Home
+Platform stats: Total users, operators, trips today, revenue
+Operator Management
+Pending approvals table with Approve/Reject buttons, active operator list with Block/Unblock
+Route Management
+Create/edit/delete routes, manage boarding points
+All Bookings
+Searchable/filterable table of all bookings across platform
+Reports
+Charts: Daily bookings, Revenue by operator, Seat occupancy (use Chart.js or ngx-charts)
+
+
+STEP 21
+Phase 21 — Edge Cases & Error Handling
+
+21.1 Critical Edge Cases — Backend
+Edge Case
+How to Handle
+Double booking same seat
+Atomic DB transaction with Serializable isolation (Phase 6)
+Seat lock expires during payment
+On payment confirm, re-verify seats are still locked by user; if not → fail payment, release order
+Payment fails after seat lock
+Background job releases locks after 5 min; refund if partial payment
+Operator adds duplicate bus number
+UNIQUE constraint on bus_number column — API returns 400 with clear message
+Session timeout
+JWT expiry; frontend interceptor catches 401, clears token, redirects to login
+Cancellation window check
+Calculate hours to departure before allowing cancel; return 400 if < 24 hrs
+Admin blocks an operator
+Set operator.is_active = false; all their future trips become unvisible in search
+Trip cancelled by operator
+Set trip.status = 'cancelled'; notify all passengers via email; auto-refund
+
+21.2 Global Error Handling Middleware (.NET)
+Middleware/ExceptionMiddleware.cs
+app.UseExceptionHandler(builder => builder.Run(async ctx => {
+    var exception = ctx.Features.Get<IExceptionHandlerFeature>()?.Error;
+    ctx.Response.StatusCode = exception switch {
+        UnauthorizedAccessException => 401,
+        KeyNotFoundException => 404,
+        ArgumentException => 400,
+        _ => 500
+    };
+    ctx.Response.ContentType = "application/json";
+    await ctx.Response.WriteAsJsonAsync(new {
+        error = exception?.Message ?? "Internal Server Error"
+    });
+}));
+
+21.3 Angular Error Interceptor
+core/interceptors/error.interceptor.ts
+export const errorInterceptor: HttpInterceptorFn = (req, next) => {
+  return next(req).pipe(
+    catchError((err: HttpErrorResponse) => {
+      if (err.status === 401) {
+        localStorage.removeItem('token');
+        inject(Router).navigate(['/login']);
+      }
+      const message = err.error?.error || 'Something went wrong';
+      inject(ToastrService).error(message);
+      return throwError(() => err);
+    })
+  );
+};
+
+
+STEP 22
+Phase 22 — Testing Strategy
+
+22.1 Backend Testing (xUnit)
+Test Type
+What to Test
+Unit Tests (xUnit)
+AuthService, BookingService, SeatLockService — mock DbContext using Moq
+Integration Tests
+Full API endpoint tests using WebApplicationFactory<Program>
+Key Test Cases
+Register duplicate email, Login wrong password, Lock already-locked seat, Cancel within 24hrs, Double booking attempt
+
+22.2 API Testing with Postman
+Create a Postman Collection: BusBooking API
+Add environment variables: baseUrl, token (auto-set from login response)
+Test happy path: Register → Login → Search → Lock → Book → Pay
+Test error paths: Expired token, wrong role access, duplicate bus number
+
+22.3 Frontend Testing (Angular)
+Test Type
+Tool
+Unit Tests
+Jasmine + Karma (built into Angular) — test services and pipes
+Component Tests
+Angular Testing Library — test components with DOM interaction
+E2E Tests
+Cypress — test full user flows: Search → Book → Pay
+
+
+STEP 23
+Phase 23 — Deployment & Production
+
+23.1 Build Commands
+Build for Production
+# Backend
+cd backend/BusBooking.API
+dotnet publish -c Release -o ./publish
+
+# Frontend
+cd frontend/bus-booking-app
+ng build --configuration production
+# Output goes to dist/bus-booking-app/
+
+23.2 Deployment Options
+Service
+Purpose
+Railway / Render / Azure App Service
+Host the .NET Web API (free tiers available)
+Vercel / Netlify / GitHub Pages
+Host the Angular frontend static files
+Supabase / Neon / Railway
+Managed PostgreSQL in the cloud
+Upstash
+Managed Redis in the cloud (free tier)
+Gmail SMTP
+Email notifications (use App Password)
+
+23.3 Nginx Config for Angular SPA
+nginx.conf — Required for Angular routing to work
+server {
+    listen 80;
+    root /var/www/bus-booking;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;  # ← Critical for SPA routing
+    }
+
+    location /api/ {
+        proxy_pass http://localhost:5000;  # ← Proxy API calls to .NET
+    }
+}
+
+23.4 Production Checklist
+Item
+Status to Verify
+HTTPS enabled
+SSL certificate on domain — use Let's Encrypt
+CORS configured
+Only allow production frontend domain
+JWT secret strength
+Must be 32+ chars, stored in environment variable not appsettings.json
+Input validation
+All DTOs validated with Data Annotations or FluentValidation
+Database connection pooling
+Npgsql handles this automatically
+Error logging
+Add Serilog or Application Insights for production error tracking
+Rate limiting
+Add ASP.NET Core rate limiting middleware to prevent abuse
+
+
+STEP 24
+Phase 24 — Future Enhancements
+
+Feature
+Implementation Notes
+AI Bus Recommendations
+Use booking history to suggest routes/operators via collaborative filtering
+Dynamic Pricing
+Operator sets base fare; system adjusts based on seat fill rate (surge pricing)
+Live Bus Tracking
+Integrate GPS device API; push location via SignalR WebSockets to Angular
+Mobile App (Flutter)
+Reuse same .NET API — just build Flutter app consuming same endpoints
+Ratings & Reviews
+Add Reviews table (booking_id, user_id, rating 1-5, comment); show avg on bus card
+Wallet / Credits
+Users get credits on cancellation; apply at checkout
+Multi-language Support
+Angular i18n module for Tamil, Hindi, English
+Push Notifications
+Firebase Cloud Messaging for mobile app notifications
+Microservices Split
+Split into: Auth Service, Booking Service, Payment Service with API Gateway
+
+
+Appendix — Quick Reference
+
+Complete API Endpoints Summary
+Endpoint
+Role Required
+POST /api/auth/register
+Public
+POST /api/auth/login
+Public
+GET /api/trips/search
+Public
+GET /api/trips/{id}/seats
+Public
+POST /api/seats/lock
+Customer (Authenticated)
+POST /api/bookings
+Customer (Authenticated)
+GET /api/bookings
+Customer (own bookings)
+DELETE /api/bookings/{id}
+Customer (cancel own booking)
+GET /api/bookings/{id}/ticket
+Customer (own booking)
+POST /api/payments/dummy-pay
+Customer (Authenticated)
+POST /api/operator/buses
+Operator
+POST /api/operator/trips
+Operator
+GET /api/operator/bookings
+Operator
+GET /api/admin/operators
+Admin
+PUT /api/admin/operators/{id}/approve
+Admin
+POST /api/admin/routes
+Admin
+GET /api/admin/reports/daily
+Admin
+
+Build Order Summary
+Follow this exact order to avoid dependency issues:
+Phase 1: Set up all tools and create project folders
+Phase 2: Design and create PostgreSQL database tables
+Phase 3: Create .NET models, DbContext, and run migrations
+Phase 4: Implement JWT authentication — test with Postman
+Phase 5: Build Bus, Route, and Trip APIs — test each
+Phase 6: Implement seat locking with transactions
+Phase 7: Build full booking flow API
+Phase 8: Add payment (dummy first, then real gateway)
+Phase 9: Add email notifications
+Phase 10: Add PDF ticket generation
+Phase 11-12: Build admin and operator APIs
+Phase 13-14: Create Angular project, routing, guards, interceptors
+Phase 15-16: Build search UI and seat selection UI
+Phase 17-20: Build booking flow, dashboards (user/operator/admin)
+Phase 21: Handle all edge cases and errors
+Phase 22: Write tests (unit, integration, E2E)
+Phase 23: Deploy to production
+
+Bus Booking System — Complete Implementation Guide
+Angular • .NET 8 Web API • PostgreSQL • Redis

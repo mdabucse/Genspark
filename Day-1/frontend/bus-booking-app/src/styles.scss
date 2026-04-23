@@ -1,0 +1,281 @@
+@use '@angular/material' as mat;
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+// ============================================================
+// BusReserve Design System — Clean Light Theme
+// ============================================================
+
+// ---- CSS Custom Properties (Design Tokens) ----
+:root {
+  // Light Surfaces
+  --bg-main: #f8f9fc;
+  --bg-light: #ffffff;
+  --bg-card: rgba(255, 255, 255, 0.85);
+  --border-color: rgba(0, 0, 0, 0.08);
+
+  // Bold Accents (Crimson & Cyan — same brand, lighter context)
+  --primary-red: #e11d48;
+  --primary-red-hover: #be123c;
+  --primary-red-dim: rgba(225, 29, 72, 0.08);
+  --primary-glow: 0 0 20px rgba(225, 29, 72, 0.2);
+
+  --accent-cyan: #0891b2;
+  --success-green: #059669;
+  --success-green-dim: rgba(5, 150, 105, 0.1);
+  --danger-red: #e11d48;
+
+  // Text
+  --text-main: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-on-accent: #ffffff;
+
+  // Typography
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+
+  // Spacing
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  // Radii
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 999px;
+
+  // Glassmorphism & Depth (light variant)
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-blur: blur(20px);
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08), 0 12px 32px rgba(0, 0, 0, 0.06);
+
+  // Layout
+  --header-height: 80px;
+  --max-content: 1200px;
+
+  // Animation
+  --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+// ---- Angular Material Theme Override ----
+html {
+  height: 100%;
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$red-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
+}
+
+// ---- Global Resets & Base ----
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg-main);
+  background-image:
+    radial-gradient(circle at 15% 50%, rgba(225, 29, 72, 0.03), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(8, 145, 178, 0.03), transparent 25%);
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// ---- Typography ----
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-main);
+  margin-top: 0;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #0f172a, #475569);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+// ---- Links ----
+a {
+  color: var(--primary-red);
+  text-decoration: none;
+  transition: color var(--transition-base);
+  &:hover {
+    color: var(--primary-red-hover);
+    text-shadow: none;
+  }
+}
+
+// ---- Buttons ----
+.btn-primary {
+  background: var(--primary-red);
+  color: var(--text-on-accent);
+  border: none;
+  padding: 12px 28px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all var(--transition-bounce);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.25);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.12), transparent);
+    border-radius: inherit;
+  }
+
+  &:hover {
+    background: var(--primary-red-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--primary-glow);
+  }
+
+  &:disabled {
+    background: #e2e8f0;
+    color: #94a3b8;
+    box-shadow: none;
+    transform: none;
+    cursor: not-allowed;
+  }
+}
+
+.btn-outline {
+  background: #ffffff;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  padding: 12px 28px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all var(--transition-base);
+
+  &:hover {
+    background: #f8f9fc;
+    border-color: rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+// ---- Glass Cards (Light variant) ----
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+
+  &:hover {
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+// ---- Angular Material Overrides for Light Theme ----
+.mat-mdc-card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-md) !important;
+  color: var(--text-main) !important;
+}
+
+.mat-mdc-form-field {
+  --mdc-filled-text-field-container-color: rgba(0,0,0,0.03) !important;
+  --mdc-outlined-text-field-outline-color: var(--border-color) !important;
+  --mdc-outlined-text-field-focus-outline-color: var(--primary-red) !important;
+  --mdc-outlined-text-field-caret-color: var(--primary-red) !important;
+  --mdc-filled-text-field-input-text-color: var(--text-main) !important;
+  --mdc-filled-text-field-label-text-color: var(--text-secondary) !important;
+}
+
+.mat-mdc-input-element {
+  color: var(--text-main) !important;
+}
+
+.mat-mdc-select-value-text {
+  color: var(--text-main) !important;
+}
+
+// Animations
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glowPulse {
+  0% { box-shadow: 0 0 8px rgba(225, 29, 72, 0.12); }
+  50% { box-shadow: 0 0 20px rgba(225, 29, 72, 0.28); }
+  100% { box-shadow: 0 0 8px rgba(225, 29, 72, 0.12); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  opacity: 0;
+}
+
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+
+// Utility
+.text-red { color: var(--primary-red); }
+.text-green { color: var(--success-green); }
+.text-muted { color: var(--text-muted); }
+.font-bold { font-weight: 600; }
+.font-display { font-family: var(--font-display); }
+
+// Toastr Override for Light Mode
+.toast-container .ngx-toastr {
+  background: #ffffff !important;
+  color: var(--text-main) !important;
+  box-shadow: var(--shadow-md) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-md) !important;
+  backdrop-filter: var(--glass-blur);
+}
+.toast-container .toast-success { border-left: 4px solid var(--success-green) !important; }
+.toast-container .toast-error { border-left: 4px solid var(--danger-red) !important; }
