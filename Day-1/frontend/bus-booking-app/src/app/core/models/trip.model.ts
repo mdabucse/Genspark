@@ -6,6 +6,8 @@ export interface Trip {
   operatorName: string;
   source: string;
   destination: string;
+  pickupPoint?: string;
+  dropPoint?: string;
   departureTime: Date;
   arrivalTime: Date;
   baseFare: number;
@@ -14,6 +16,9 @@ export interface Trip {
   availableSeats: number;
   totalSeats: number;
   status: string;
+  rows?: number;
+  columns?: number;
+  hasUpperDeck?: boolean;
 }
 
 export interface SeatStatus {
@@ -21,6 +26,9 @@ export interface SeatStatus {
   seatNumber: string;
   seatType: string;
   status: 'available' | 'booked' | 'locked';
+  row?: number;
+  column?: number;
+  deck?: string;
 }
 
 export interface Route {

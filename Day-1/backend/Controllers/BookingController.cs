@@ -51,6 +51,14 @@ public class BookingController : ControllerBase
         return Ok(new { message = "Booking cancelled successfully" });
     }
 
+    [HttpGet("{id}/cancellation-quote")]
+    public async Task<IActionResult> GetCancellationQuote(int id)
+    {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var quote = await _bookingService.GetCancellationQuoteAsync(id, userId);
+        return Ok(quote);
+    }
+
     [HttpGet("{bookingId}/ticket")]
     public async Task<IActionResult> DownloadTicket(int bookingId)
     {

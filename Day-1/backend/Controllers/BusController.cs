@@ -66,4 +66,13 @@ public class BusController : ControllerBase
         var buses = await _busService.GetOperatorBusesAsync(operatorId);
         return Ok(buses);
     }
+
+    [HttpPost("{id}/toggle-status")]
+    [Authorize(Roles = "operator")]
+    public async Task<IActionResult> ToggleStatus(int id)
+    {
+        var operatorId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await _busService.ToggleBusStatusAsync(id, operatorId);
+        return Ok(result);
+    }
 }

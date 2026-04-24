@@ -32,6 +32,29 @@ export interface OperatorData {
   createdAt: string;
 }
 
+export interface OperatorPerformance {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  busCount: number;
+  totalBookings: number;
+  totalRevenue: number;
+  activeTrips: number;
+  completedTrips: number;
+  cancelledTrips: number;
+}
+
+export interface AuditLog {
+  id: number;
+  action: string;
+  description: string;
+  targetType: string;
+  targetId: string;
+  adminEmail: string;
+  createdAt: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -42,6 +65,11 @@ export class AdminService {
   // Dashboard
   getDashboardStats(): Observable<AdminDashboardStats> {
     return this.http.get<AdminDashboardStats>(`${this.apiUrl}/dashboard`);
+  }
+
+  // Reports
+  getOperatorPerformance(): Observable<OperatorPerformance[]> {
+    return this.http.get<OperatorPerformance[]>(`${this.apiUrl}/reports/operator-performance`);
   }
 
   // Routes
@@ -72,5 +100,16 @@ export class AdminService {
 
   unblockOperator(id: number): Observable<any> {
     return this.http.put(`${this.apiUrl}/operators/${id}/unblock`, {});
+  }
+
+  // Bookings
+  getBookings(operatorId?: number, page: number = 1, pageSize: number = 20): Observable<any> {
+    let url = `${this.apiUrl}/bookings?page=${page}&pageSize=${pageSize}`;
+    if (operatorId) url += `&operatorId=${operatorId}`;
+    return this.http.get<any>(url);
+  }
+
+  getAuditLogs(): Observable<AuditLog[]> {
+    return this.http.get<AuditLog[]>(`${this.apiUrl}/audit-logs`);
   }
 }

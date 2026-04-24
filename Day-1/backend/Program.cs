@@ -76,6 +76,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 app.UseAuthentication();
+app.UseUserStatusCheck();
 app.UseAuthorization();
 app.MapControllers();
 

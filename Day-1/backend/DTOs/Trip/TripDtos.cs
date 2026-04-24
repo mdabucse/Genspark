@@ -21,6 +21,9 @@ public class CreateTripDto
     public decimal BaseFare { get; set; }
 
     public decimal TaxPercent { get; set; } = 5.0m;
+
+    public string? PickupPoint { get; set; }
+    public string? DropPoint { get; set; }
 }
 
 public class TripSearchDto
@@ -40,10 +43,12 @@ public class TripResponseDto
     public int TripId { get; set; }
     public string BusName { get; set; } = string.Empty;
     public string BusType { get; set; } = string.Empty;
-    public string SeatLayout { get; set; } = string.Empty;
+    public string? SeatLayout { get; set; }
     public string OperatorName { get; set; } = string.Empty;
     public string Source { get; set; } = string.Empty;
     public string Destination { get; set; } = string.Empty;
+    public string? PickupPoint { get; set; }
+    public string? DropPoint { get; set; }
     public DateTime DepartureTime { get; set; }
     public DateTime ArrivalTime { get; set; }
     public decimal BaseFare { get; set; }
@@ -52,6 +57,9 @@ public class TripResponseDto
     public int AvailableSeats { get; set; }
     public int TotalSeats { get; set; }
     public string Status { get; set; } = string.Empty;
+    public int Rows { get; set; }
+    public int Columns { get; set; }
+    public bool HasUpperDeck { get; set; }
 }
 
 public class SeatStatusDto
@@ -60,6 +68,9 @@ public class SeatStatusDto
     public string SeatNumber { get; set; } = string.Empty;
     public string SeatType { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty; // available, booked, locked
+    public int Row { get; set; }
+    public int Column { get; set; }
+    public string Deck { get; set; } = "lower";
 }
 
 public class CreateRouteDto

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using BusBooking.API.Models;
 
 namespace BusBooking.API.Data;
@@ -17,6 +18,7 @@ public class AppDbContext : DbContext
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<BookingPassenger> BookingPassengers => Set<BookingPassenger>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -46,6 +48,32 @@ public class AppDbContext : DbContext
         mb.Entity<Trip>().Property(t => t.BaseFare).HasPrecision(10, 2);
         mb.Entity<Trip>().Property(t => t.TaxPercent).HasPrecision(5, 2);
         mb.Entity<Booking>().Property(b => b.TotalAmount).HasPrecision(10, 2);
+        mb.Entity<Booking>().Property(b => b.RefundAmount).HasPrecision(10, 2);
+        mb.Entity<Booking>().Property(b => b.DeductionAmount).HasPrecision(10, 2);
         mb.Entity<Payment>().Property(p => p.Amount).HasPrecision(10, 2);
+
+        // Force all DateTime properties to UTC kind when reading from DB
+        var utcConverter = new ValueConverter<DateTime, DateTime>(
+            v => v, // Store as is (assuming it's already UTC)
+            v => DateTime.SpecifyKind(v, DateTimeKind.Utc)); // When reading, tell EF it's UTC
+
+        var utcNullableConverter = new ValueConverter<DateTime?, DateTime?>(
+            v => v,
+            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
+
+        foreach (var entityType in mb.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.ClrType == typeof(DateTime))
+                {
+                    property.SetValueConverter(utcConverter);
+                }
+                else if (property.ClrType == typeof(DateTime?))
+                {
+                    property.SetValueConverter(utcNullableConverter);
+                }
+            }
+        }
     }
 }

@@ -77,7 +77,9 @@ export const routes: Routes = [
     children: [
       { path: '', loadComponent: () => import('./features/admin/admin-dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent) },
       { path: 'routes', loadComponent: () => import('./features/admin/manage-routes/manage-routes.component').then(m => m.ManageRoutesComponent) },
-      { path: 'operators', loadComponent: () => import('./features/admin/manage-operators/manage-operators.component').then(m => m.ManageOperatorsComponent) }
+      { path: 'operators', loadComponent: () => import('./features/admin/manage-operators/manage-operators.component').then(m => m.ManageOperatorsComponent) },
+      { path: 'bookings', loadComponent: () => import('./features/admin/manage-bookings/manage-bookings.component').then(m => m.ManageBookingsComponent) },
+      { path: 'audit-logs', loadComponent: () => import('./features/admin/audit-logs/audit-logs.component').then(m => m.AuditLogsComponent) }
     ]
   },
   {
@@ -89,7 +91,8 @@ export const routes: Routes = [
       { path: '', loadComponent: () => import('./features/operator/operator-dashboard/operator-dashboard.component').then(m => m.OperatorDashboardComponent) },
       { path: 'buses', loadComponent: () => import('./features/operator/manage-buses/manage-buses.component').then(m => m.ManageBusesComponent) },
       { path: 'trips', loadComponent: () => import('./features/operator/schedule-trips/schedule-trips.component').then(m => m.ScheduleTripsComponent) },
-      { path: 'bookings', loadComponent: () => import('./features/operator/operator-bookings/operator-bookings.component').then(m => m.OperatorBookingsComponent) }
+      { path: 'bookings', loadComponent: () => import('./features/operator/operator-bookings/operator-bookings.component').then(m => m.OperatorBookingsComponent) },
+      { path: 'buses/:id/layout', loadComponent: () => import('./features/operator/bus-layout-designer/bus-layout-designer.component').then(m => m.BusLayoutDesignerComponent) }
     ]
   },
   { 

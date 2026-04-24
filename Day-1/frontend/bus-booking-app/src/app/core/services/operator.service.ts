@@ -19,7 +19,19 @@ export interface BusData {
   seatLayout: string;
   isActive?: boolean;
   operatorId?: number;
+  rows?: number;
+  columns?: number;
+  hasUpperDeck?: boolean;
+  seats?: SeatLayoutDto[];
   createdAt?: string;
+}
+
+export interface SeatLayoutDto {
+  seatNumber: string;
+  seatType: string;
+  row: number;
+  column: number;
+  deck: string;
 }
 
 export interface OperatorTrip {
@@ -73,6 +85,10 @@ export class OperatorService {
 
   blockBus(id: number): Observable<any> {
     return this.http.put(`${this.apiUrl}/buses/${id}/block`, {});
+  }
+
+  saveLayout(id: number, layout: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/buses/${id}/layout`, layout);
   }
 
   getMyTrips(): Observable<OperatorTrip[]> {

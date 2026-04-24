@@ -45,6 +45,8 @@ public class TripService : ITripService
                 OperatorName = t.Bus.Operator.Name,
                 Source = t.Route.Source,
                 Destination = t.Route.Destination,
+                PickupPoint = t.PickupPoint,
+                DropPoint = t.DropPoint,
                 DepartureTime = t.DepartureTime,
                 ArrivalTime = t.ArrivalTime,
                 BaseFare = t.BaseFare,
@@ -53,7 +55,10 @@ public class TripService : ITripService
                 TotalSeats = t.Bus.Capacity,
                 AvailableSeats = t.Bus.Capacity - _db.TripSeatStatuses
                     .Count(ss => ss.TripId == t.Id && (ss.Status == "booked" || ss.Status == "locked")),
-                Status = t.Status
+                Status = t.Status,
+                Rows = t.Bus.Rows,
+                Columns = t.Bus.Columns,
+                HasUpperDeck = t.Bus.HasUpperDeck
             })
             .ToListAsync();
 
@@ -105,6 +110,8 @@ public class TripService : ITripService
                 OperatorName = t.Bus.Operator.Name,
                 Source = t.Route.Source,
                 Destination = t.Route.Destination,
+                PickupPoint = t.PickupPoint,
+                DropPoint = t.DropPoint,
                 DepartureTime = t.DepartureTime,
                 ArrivalTime = t.ArrivalTime,
                 BaseFare = t.BaseFare,
@@ -113,7 +120,10 @@ public class TripService : ITripService
                 TotalSeats = t.Bus.Capacity,
                 AvailableSeats = t.Bus.Capacity - _db.TripSeatStatuses
                     .Count(ss => ss.TripId == t.Id && (ss.Status == "booked" || ss.Status == "locked")),
-                Status = t.Status
+                Status = t.Status,
+                Rows = t.Bus.Rows,
+                Columns = t.Bus.Columns,
+                HasUpperDeck = t.Bus.HasUpperDeck
             })
             .FirstOrDefaultAsync();
     }
@@ -154,7 +164,10 @@ public class TripService : ITripService
                 SeatId = seat.Id,
                 SeatNumber = seat.SeatNumber,
                 SeatType = seat.SeatType,
-                Status = seatStatus
+                Status = seatStatus,
+                Row = seat.Row,
+                Column = seat.Column,
+                Deck = seat.Deck
             };
         }).ToList();
 
@@ -180,6 +193,8 @@ public class TripService : ITripService
             ArrivalTime = dto.ArrivalTime,
             BaseFare = dto.BaseFare,
             TaxPercent = dto.TaxPercent,
+            PickupPoint = dto.PickupPoint,
+            DropPoint = dto.DropPoint,
             Status = "scheduled"
         };
 

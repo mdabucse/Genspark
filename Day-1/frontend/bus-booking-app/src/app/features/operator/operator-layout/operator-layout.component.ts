@@ -15,7 +15,9 @@ import { MatButtonModule } from '@angular/material/button';
       <mat-sidenav-container class="sidenav-container">
         <mat-sidenav mode="side" opened class="sidenav">
           <div class="sidenav-header">
-            <mat-icon>local_shipping</mat-icon>
+            <div class="portal-badge">
+              <mat-icon>local_shipping</mat-icon>
+            </div>
             <h2>Operator Portal</h2>
           </div>
           <mat-nav-list>
@@ -50,7 +52,7 @@ import { MatButtonModule } from '@angular/material/button';
   `,
   styles: [`
     .operator-container {
-      height: calc(100vh - 64px);
+      height: calc(100vh - var(--header-height));
       display: flex;
       flex-direction: column;
     }
@@ -58,43 +60,80 @@ import { MatButtonModule } from '@angular/material/button';
       flex: 1;
     }
     .sidenav {
-      width: 250px;
-      background-color: #1a3a4a;
+      width: 240px;
+      background: #0f1729;
       color: white;
+      border-right: none !important;
     }
     .sidenav-header {
-      padding: 20px;
-      text-align: center;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      h2 { margin: 10px 0 0 0; color: white; }
-      mat-icon { font-size: 40px; width: 40px; height: 40px; }
+      padding: 28px 20px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+
+      .portal-badge {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--primary-red), #fb7185);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 16px rgba(225, 29, 72, 0.3);
+        mat-icon { font-size: 24px; width: 24px; height: 24px; color: white; }
+      }
+
+      h2 {
+        margin: 0;
+        color: rgba(255,255,255,0.9);
+        font-family: var(--font-display);
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
     }
+
     ::ng-deep .sidenav .mat-mdc-list-item {
-      color: #b8c7ce !important;
-      .mdc-list-item__primary-text { color: #b8c7ce !important; }
-      mat-icon { color: #b8c7ce !important; }
+      margin: 2px 8px;
+      border-radius: 10px !important;
+      color: rgba(255,255,255,0.55) !important;
+      transition: all 0.2s ease !important;
+
+      .mdc-list-item__primary-text { 
+        color: rgba(255,255,255,0.55) !important; 
+        font-family: var(--font-body) !important;
+        font-size: 0.88rem !important;
+        font-weight: 500 !important;
+      }
+      mat-icon { 
+        color: rgba(255,255,255,0.35) !important; 
+        font-size: 20px !important;
+        width: 20px !important;
+        height: 20px !important;
+      }
     }
     ::ng-deep .sidenav .mat-mdc-list-item:hover {
-      background-color: #0d2530 !important;
+      background-color: rgba(255,255,255,0.06) !important;
       color: white !important;
       .mdc-list-item__primary-text { color: white !important; }
-      mat-icon { color: white !important; }
+      mat-icon { color: rgba(255,255,255,0.8) !important; }
     }
     ::ng-deep .sidenav .mat-mdc-list-item.active {
-      background-color: #2196f3 !important;
+      background: rgba(225, 29, 72, 0.15) !important;
       color: white !important;
-      border-left: 4px solid #fff;
-      .mdc-list-item__primary-text { color: white !important; font-weight: bold; }
-      mat-icon { color: white !important; }
+      border-left: 3px solid var(--primary-red) !important;
+      .mdc-list-item__primary-text { color: white !important; font-weight: 600 !important; }
+      mat-icon { color: var(--primary-red) !important; }
     }
     .back-home {
-      margin-top: 40px;
-      border-top: 1px solid rgba(255,255,255,0.1);
+      margin-top: 32px !important;
     }
     .content {
-      padding: 24px;
-      background-color: #f5f7fa;
-      min-height: calc(100vh - 64px);
+      padding: 28px 32px;
+      background-color: #f8f9fc;
+      min-height: calc(100vh - var(--header-height));
     }
   `]
 })

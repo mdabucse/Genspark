@@ -9,10 +9,12 @@ namespace BusBooking.API.Services;
 public class BusService : IBusService
 {
     private readonly AppDbContext _db;
+    private readonly IEmailService _emailService;
 
-    public BusService(AppDbContext db)
+    public BusService(AppDbContext db, IEmailService emailService)
     {
         _db = db;
+        _emailService = emailService;
     }
 
     public async Task<List<BusResponseDto>> GetAllBusesAsync()
@@ -48,16 +50,36 @@ public class BusService : IBusService
         _db.Buses.Add(bus);
         await _db.SaveChangesAsync();
 
-        // Auto-generate seats based on capacity and layout
+        // Use custom layout if provided, otherwise auto-generate
         var seats = new List<Seat>();
-        for (int i = 1; i <= dto.Capacity; i++)
+        if (dto.Seats != null && dto.Seats.Any())
         {
-            seats.Add(new Seat
+            bus.Rows = dto.Rows;
+            bus.Columns = dto.Columns;
+            bus.HasUpperDeck = dto.HasUpperDeck;
+            bus.Capacity = dto.Seats.Count;
+            
+            seats.AddRange(dto.Seats.Select(s => new Seat
             {
                 BusId = bus.Id,
-                SeatNumber = GenerateSeatLabel(i, dto.SeatLayout),
-                SeatType = GetSeatType(i, dto.SeatLayout)
-            });
+                SeatNumber = s.SeatNumber,
+                SeatType = s.SeatType,
+                Row = s.Row,
+                Column = s.Column,
+                Deck = s.Deck
+            }));
+        }
+        else
+        {
+            for (int i = 1; i <= dto.Capacity; i++)
+            {
+                seats.Add(new Seat
+                {
+                    BusId = bus.Id,
+                    SeatNumber = GenerateSeatLabel(i, dto.SeatLayout),
+                    SeatType = GetSeatType(i, dto.SeatLayout)
+                });
+            }
         }
 
         _db.Seats.AddRange(seats);
@@ -95,8 +117,98 @@ public class BusService : IBusService
     {
         return await _db.Buses
             .Where(b => b.OperatorId == operatorId)
+            .OrderByDescending(b => b.CreatedAt)
             .Select(b => MapToDto(b))
             .ToListAsync();
+    }
+
+    public async Task<BusResponseDto> ToggleBusStatusAsync(int id, int operatorId)
+    {
+        var bus = await _db.Buses
+            .Include(b => b.Trips)
+            .FirstOrDefaultAsync(b => b.Id == id && b.OperatorId == operatorId);
+
+        if (bus == null)
+            throw new KeyNotFoundException("Bus not found or you don't have permission");
+
+        bus.IsActive = !bus.IsActive;
+        await _db.SaveChangesAsync();
+
+        if (!bus.IsActive) // Bus was blocked
+        {
+            // Find all confirmed bookings for future trips using this bus
+            var futureTripIds = bus.Trips
+                .Where(t => t.DepartureTime > DateTime.UtcNow)
+                .Select(t => t.Id)
+                .ToList();
+
+            if (futureTripIds.Any())
+            {
+                var bookingsToNotify = await _db.Bookings
+                    .Include(b => b.User)
+                    .Include(b => b.Trip).ThenInclude(t => t.Route)
+                    .Include(b => b.Trip).ThenInclude(t => t.Bus)
+                    .Where(b => futureTripIds.Contains(b.TripId) && b.Status == "confirmed")
+                    .ToListAsync();
+
+                foreach (var booking in bookingsToNotify)
+                {
+                    try
+                    {
+                        await _emailService.SendBusBlockedNotificationAsync(booking);
+                    }
+                    catch
+                    {
+                        // Log error but continue notifying others
+                    }
+                }
+            }
+        }
+
+        return MapToDto(bus);
+    }
+
+    public async Task<BusResponseDto> UpdateBusLayoutAsync(int id, UpdateBusLayoutDto dto, int operatorId)
+    {
+        var bus = await _db.Buses
+            .Include(b => b.Seats)
+            .FirstOrDefaultAsync(b => b.Id == id && b.OperatorId == operatorId);
+
+        if (bus == null)
+            throw new KeyNotFoundException("Bus not found or you don't have permission");
+
+        // Update dimensions
+        bus.Rows = dto.Rows;
+        bus.Columns = dto.Columns;
+        bus.HasUpperDeck = dto.HasUpperDeck;
+
+        // Remove old seats (be careful if there are active bookings, 
+        // but typically layout changes are only allowed for future trips or new buses)
+        // Check if there are future trips with bookings
+        var futureTripsWithBookings = await _db.Trips
+            .AnyAsync(t => t.BusId == id && t.DepartureTime > DateTime.UtcNow && t.TripSeatStatuses.Any(ss => ss.Status == "booked"));
+            
+        if (futureTripsWithBookings)
+            throw new InvalidOperationException("Cannot change layout of a bus that has future trips with active bookings.");
+
+        _db.Seats.RemoveRange(bus.Seats);
+        
+        // Add new seats
+        var newSeats = dto.Seats.Select(s => new Seat
+        {
+            BusId = bus.Id,
+            SeatNumber = s.SeatNumber,
+            SeatType = s.SeatType,
+            Row = s.Row,
+            Column = s.Column,
+            Deck = s.Deck
+        }).ToList();
+
+        _db.Seats.AddRange(newSeats);
+        bus.Capacity = newSeats.Count;
+
+        await _db.SaveChangesAsync();
+        return MapToDto(bus);
     }
 
     private static string GenerateSeatLabel(int index, string layout)
@@ -135,6 +247,17 @@ public class BusService : IBusService
             BusType = bus.BusType,
             SeatLayout = bus.SeatLayout,
             IsActive = bus.IsActive,
+            Rows = bus.Rows,
+            Columns = bus.Columns,
+            HasUpperDeck = bus.HasUpperDeck,
+            Seats = bus.Seats.Select(s => new SeatLayoutDto
+            {
+                SeatNumber = s.SeatNumber,
+                SeatType = s.SeatType,
+                Row = s.Row,
+                Column = s.Column,
+                Deck = s.Deck
+            }).ToList(),
             CreatedAt = bus.CreatedAt
         };
     }

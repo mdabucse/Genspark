@@ -46,4 +46,18 @@ export class BookingService {
       responseType: 'blob'
     });
   }
+
+  getCancellationQuote(id: number) {
+    return this.http.get<CancellationQuote>(`${this.apiUrl}/bookings/${id}/cancellation-quote`);
+  }
+}
+
+export interface CancellationQuote {
+  bookingId: number;
+  totalAmount: number;
+  refundAmount: number;
+  deductionAmount: number;
+  cancellationPolicy: string;
+  canCancel: boolean;
+  cannotCancelReason?: string;
 }

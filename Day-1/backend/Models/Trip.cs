@@ -35,6 +35,12 @@ public class Trip
     [Column("status")]
     public string Status { get; set; } = "scheduled"; // scheduled, cancelled, completed
 
+    [Column("pickup_point")]
+    public string? PickupPoint { get; set; }
+
+    [Column("drop_point")]
+    public string? DropPoint { get; set; }
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

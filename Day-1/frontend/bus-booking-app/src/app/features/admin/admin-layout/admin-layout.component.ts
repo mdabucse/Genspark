@@ -38,6 +38,14 @@ import { MatButtonModule } from '@angular/material/button';
             <mat-icon>manage_accounts</mat-icon>
             <span>Manage Operators</span>
           </a>
+          <a class="nav-item" routerLink="/admin/bookings" routerLinkActive="active">
+            <mat-icon>receipt_long</mat-icon>
+            <span>Manage Bookings</span>
+          </a>
+          <a class="nav-item" routerLink="/admin/audit-logs" routerLinkActive="active">
+            <mat-icon>history</mat-icon>
+            <span>Audit Logs</span>
+          </a>
         </nav>
 
         <!-- Bottom -->

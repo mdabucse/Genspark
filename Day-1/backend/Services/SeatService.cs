@@ -2,6 +2,7 @@ using System.Data;
 using BusBooking.API.Data;
 using BusBooking.API.DTOs.Booking;
 using BusBooking.API.Interfaces;
+using BusBooking.API.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace BusBooking.API.Services;
@@ -41,7 +42,34 @@ public class SeatService : ISeatService
                 .ToListAsync();
 
             if (statuses.Count != seatIds.Length)
-                throw new ArgumentException("One or more seats do not exist for this trip");
+            {
+                // Some status records are missing (happens if layout changed after scheduling)
+                // Verify these seats actually belong to the bus for this trip
+                var trip = await _db.Trips.FindAsync(tripId);
+                if (trip == null) throw new ArgumentException("Trip not found");
+
+                var missingIds = seatIds.Except(statuses.Select(s => s.SeatId)).ToList();
+                var validSeats = await _db.Seats
+                    .Where(s => s.BusId == trip.BusId && missingIds.Contains(s.Id))
+                    .ToListAsync();
+
+                if (validSeats.Count != missingIds.Count)
+                    throw new ArgumentException("One or more seats are invalid for this bus");
+
+                // Create missing status records
+                foreach (var seat in validSeats)
+                {
+                    var newStatus = new TripSeatStatus
+                    {
+                        TripId = tripId,
+                        SeatId = seat.Id,
+                        Status = "available"
+                    };
+                    _db.TripSeatStatuses.Add(newStatus);
+                    statuses.Add(newStatus);
+                }
+                await _db.SaveChangesAsync();
+            }
 
             // Check all must be available
             var unavailable = statuses

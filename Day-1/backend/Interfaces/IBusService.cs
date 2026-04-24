@@ -10,4 +10,6 @@ public interface IBusService
     Task<BusResponseDto> UpdateBusAsync(int id, UpdateBusDto dto, int operatorId);
     Task<bool> DeleteBusAsync(int id, int operatorId);
     Task<List<BusResponseDto>> GetOperatorBusesAsync(int operatorId);
+    Task<BusResponseDto> ToggleBusStatusAsync(int id, int operatorId);
+    Task<BusResponseDto> UpdateBusLayoutAsync(int id, UpdateBusLayoutDto dto, int operatorId);
 }

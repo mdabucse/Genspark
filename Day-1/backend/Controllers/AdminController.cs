@@ -21,6 +21,22 @@ public class AdminController : ControllerBase
         _emailService = emailService;
     }
 
+    private async Task LogActionAsync(string action, string description, string targetType, string? targetId)
+    {
+        var adminEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "admin@system.com";
+        var log = new Models.AuditLog
+        {
+            Action = action,
+            Description = description,
+            TargetType = targetType,
+            TargetId = targetId,
+            AdminEmail = adminEmail,
+            CreatedAt = DateTime.UtcNow
+        };
+        _db.AuditLogs.Add(log);
+        await _db.SaveChangesAsync();
+    }
+
     [HttpGet("operators")]
     public async Task<IActionResult> GetOperators()
     {
@@ -47,6 +63,8 @@ public class AdminController : ControllerBase
         user.IsVerified = true;
         await _db.SaveChangesAsync();
 
+        await LogActionAsync("Approve Operator", $"Approved operator {user.Name} ({user.Email})", "Operator", user.Id.ToString());
+
         try { await _emailService.SendOperatorApprovalEmailAsync(user); }
         catch { /* Log but don't fail */ }
 
@@ -63,6 +81,8 @@ public class AdminController : ControllerBase
         user.IsActive = false;
         user.IsVerified = false;
         await _db.SaveChangesAsync();
+
+        await LogActionAsync("Reject Operator", $"Rejected operator {user.Name} ({user.Email})", "Operator", user.Id.ToString());
         return Ok(new { message = "Operator rejected" });
     }
 
@@ -112,6 +132,9 @@ public class AdminController : ControllerBase
         }
 
         await _db.SaveChangesAsync();
+
+        await LogActionAsync("Block Operator", $"Blocked operator {user.Name} ({user.Email}) and cancelled {futureTrips.Count} future trips", "Operator", user.Id.ToString());
+
         return Ok(new { message = "Operator blocked", cancelledTrips = futureTrips.Count });
     }
 
@@ -124,19 +147,30 @@ public class AdminController : ControllerBase
 
         user.IsActive = true;
         await _db.SaveChangesAsync();
+
+        await LogActionAsync("Unblock Operator", $"Unblocked operator {user.Name} ({user.Email})", "Operator", user.Id.ToString());
         return Ok(new { message = "Operator unblocked" });
     }
 
     [HttpGet("bookings")]
     public async Task<IActionResult> GetAllBookings(
+        [FromQuery] int? operatorId = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
         var query = _db.Bookings
             .Include(b => b.User)
-            .Include(b => b.Trip).ThenInclude(t => t.Bus)
+            .Include(b => b.Passengers).ThenInclude(p => p.Seat)
+            .Include(b => b.Trip).ThenInclude(t => t.Bus).ThenInclude(b => b.Operator)
             .Include(b => b.Trip).ThenInclude(t => t.Route)
-            .OrderByDescending(b => b.BookedAt);
+            .AsQueryable();
+
+        if (operatorId.HasValue)
+        {
+            query = query.Where(b => b.Trip.Bus.OperatorId == operatorId.Value);
+        }
+
+        query = query.OrderByDescending(b => b.BookedAt);
 
         var total = await query.CountAsync();
         var bookings = await query
@@ -144,12 +178,24 @@ public class AdminController : ControllerBase
             .Take(pageSize)
             .Select(b => new
             {
-                b.Id, b.BookingRef, b.Status, b.TotalAmount, b.BookedAt,
+                b.Id,
+                b.BookingRef,
+                b.Status,
+                b.TotalAmount,
+                b.BookedAt,
                 UserName = b.User.Name,
                 UserEmail = b.User.Email,
                 BusName = b.Trip.Bus.BusName,
+                OperatorName = b.Trip.Bus.Operator.Name,
                 Route = b.Trip.Route.Source + " → " + b.Trip.Route.Destination,
-                DepartureTime = b.Trip.DepartureTime
+                DepartureTime = b.Trip.DepartureTime,
+                Passengers = b.Passengers.Select(p => new
+                {
+                    Name = p.PassengerName,
+                    Age = p.PassengerAge,
+                    Gender = p.PassengerGender,
+                    SeatNumber = p.Seat.SeatNumber
+                })
             })
             .ToListAsync();
 
@@ -165,19 +211,25 @@ public class AdminController : ControllerBase
             .Where(b => b.BookedAt.Date == targetDate)
             .CountAsync();
 
-        var revenue = await _db.Payments
+        var successRevenue = await _db.Payments
             .Where(p => p.Status == "success" && p.PaidAt.HasValue && p.PaidAt.Value.Date == targetDate)
             .SumAsync(p => p.Amount);
 
+        var cancellationFees = await _db.Bookings
+            .Where(b => b.Status == "cancelled" && b.CancelledAt.HasValue && b.CancelledAt.Value.Date == targetDate)
+            .SumAsync(b => b.DeductionAmount);
+
+        var totalRevenue = successRevenue + cancellationFees;
+
         var cancelledCount = await _db.Bookings
-            .Where(b => b.CancelledAt.HasValue && b.CancelledAt.Value.Date == targetDate)
+            .Where(b => b.Status == "cancelled" && b.CancelledAt.HasValue && b.CancelledAt.Value.Date == targetDate)
             .CountAsync();
 
         return Ok(new
         {
             date = targetDate,
             totalBookings = bookingsCount,
-            totalRevenue = revenue,
+            totalRevenue = totalRevenue,
             cancelledBookings = cancelledCount
         });
     }
@@ -185,7 +237,7 @@ public class AdminController : ControllerBase
     [HttpGet("reports/revenue-by-operator")]
     public async Task<IActionResult> RevenueByOperator()
     {
-        var report = await _db.Payments
+        var successRevenueByOperator = await _db.Payments
             .Where(p => p.Status == "success")
             .Include(p => p.Booking).ThenInclude(b => b.Trip).ThenInclude(t => t.Bus).ThenInclude(b => b.Operator)
             .GroupBy(p => new { p.Booking.Trip.Bus.Operator.Id, p.Booking.Trip.Bus.Operator.Name })
@@ -193,12 +245,55 @@ public class AdminController : ControllerBase
             {
                 OperatorId = g.Key.Id,
                 OperatorName = g.Key.Name,
-                TotalRevenue = g.Sum(p => p.Amount),
+                SuccessAmount = g.Sum(p => p.Amount),
                 BookingCount = g.Count()
             })
             .ToListAsync();
 
+        var cancellationFeesByOperator = await _db.Bookings
+            .Where(b => b.Status == "cancelled" && b.DeductionAmount > 0)
+            .Include(b => b.Trip).ThenInclude(t => t.Bus).ThenInclude(b => b.Operator)
+            .GroupBy(b => new { b.Trip.Bus.Operator.Id, b.Trip.Bus.Operator.Name })
+            .Select(g => new
+            {
+                OperatorId = g.Key.Id,
+                Fees = g.Sum(b => b.DeductionAmount)
+            })
+            .ToListAsync();
+
+        var report = successRevenueByOperator.Select(s => new
+        {
+            s.OperatorId,
+            s.OperatorName,
+            TotalRevenue = s.SuccessAmount + (cancellationFeesByOperator.FirstOrDefault(c => c.OperatorId == s.OperatorId)?.Fees ?? 0),
+            s.BookingCount
+        }).ToList();
+
         return Ok(report);
+    }
+
+    [HttpGet("reports/operator-performance")]
+    public async Task<IActionResult> GetOperatorPerformance()
+    {
+        var operators = await _db.Users
+            .Where(u => u.Role == "operator")
+            .Select(u => new
+            {
+                u.Id,
+                u.Name,
+                u.Email,
+                u.Phone,
+                BusCount = u.Buses.Count,
+                TotalBookings = _db.Bookings.Count(b => b.Trip.Bus.OperatorId == u.Id && b.Status != "cancelled"),
+                TotalRevenue = _db.Payments.Where(p => p.Status == "success" && p.Booking.Trip.Bus.OperatorId == u.Id).Sum(p => p.Amount) + 
+                               _db.Bookings.Where(b => b.Status == "cancelled" && b.Trip.Bus.OperatorId == u.Id).Sum(b => b.DeductionAmount),
+                ActiveTrips = _db.Trips.Count(t => t.Bus.OperatorId == u.Id && t.Status == "scheduled" && t.DepartureTime > DateTime.UtcNow),
+                CompletedTrips = _db.Trips.Count(t => t.Bus.OperatorId == u.Id && t.Status == "completed"),
+                CancelledTrips = _db.Trips.Count(t => t.Bus.OperatorId == u.Id && t.Status == "cancelled")
+            })
+            .ToListAsync();
+
+        return Ok(operators);
     }
 
     [HttpGet("reports/seat-occupancy")]
@@ -256,15 +351,32 @@ public class AdminController : ControllerBase
         var totalOperators = await _db.Users.CountAsync(u => u.Role == "operator");
         var pendingOperators = await _db.Users.CountAsync(u => u.Role == "operator" && !u.IsActive);
         var tripsToday = await _db.Trips.CountAsync(t => t.DepartureTime.Date == DateTime.UtcNow.Date);
-        var totalRevenue = await _db.Payments.Where(p => p.Status == "success").SumAsync(p => p.Amount);
-        var todayRevenue = await _db.Payments
+        var successRevenue = await _db.Payments.Where(p => p.Status == "success").SumAsync(p => p.Amount);
+        var totalCancellationFees = await _db.Bookings.Where(b => b.Status == "cancelled").SumAsync(b => b.DeductionAmount);
+        var totalRevenue = successRevenue + totalCancellationFees;
+
+        var successRevenueToday = await _db.Payments
             .Where(p => p.Status == "success" && p.PaidAt.HasValue && p.PaidAt.Value.Date == DateTime.UtcNow.Date)
             .SumAsync(p => p.Amount);
+        var cancellationFeesToday = await _db.Bookings
+            .Where(b => b.Status == "cancelled" && b.CancelledAt.HasValue && b.CancelledAt.Value.Date == DateTime.UtcNow.Date)
+            .SumAsync(b => b.DeductionAmount);
+        var todayRevenue = successRevenueToday + cancellationFeesToday;
 
         return Ok(new
         {
             totalUsers, totalOperators, pendingOperators,
             tripsToday, totalRevenue, todayRevenue
         });
+    }
+
+    [HttpGet("audit-logs")]
+    public async Task<IActionResult> GetAuditLogs()
+    {
+        var logs = await _db.AuditLogs
+            .OrderByDescending(l => l.CreatedAt)
+            .Take(100)
+            .ToListAsync();
+        return Ok(logs);
     }
 }

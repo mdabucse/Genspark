@@ -51,8 +51,22 @@ public class OperatorController : ControllerBase
     [HttpPut("buses/{id}/block")]
     public async Task<IActionResult> BlockBus(int id)
     {
-        var result = await _busService.UpdateBusAsync(id, new UpdateBusDto { IsActive = false }, GetOperatorId());
-        return Ok(new { message = "Bus blocked", result });
+        var result = await _busService.ToggleBusStatusAsync(id, GetOperatorId());
+        return Ok(new { message = result.IsActive ? "Bus unblocked" : "Bus blocked", result });
+    }
+
+    [HttpPut("buses/{id}/unblock")]
+    public async Task<IActionResult> UnblockBus(int id)
+    {
+        var result = await _busService.ToggleBusStatusAsync(id, GetOperatorId());
+        return Ok(new { message = "Bus unblocked", result });
+    }
+
+    [HttpPut("buses/{id}/layout")]
+    public async Task<IActionResult> SaveLayout(int id, [FromBody] UpdateBusLayoutDto dto)
+    {
+        var result = await _busService.UpdateBusLayoutAsync(id, dto, GetOperatorId());
+        return Ok(new { message = "Bus layout saved successfully", result });
     }
 
     [HttpGet("trips")]
@@ -63,7 +77,7 @@ public class OperatorController : ControllerBase
             .Include(t => t.Bus)
             .Include(t => t.Route)
             .Where(t => t.Bus.OperatorId == operatorId)
-            .OrderByDescending(t => t.DepartureTime)
+            .OrderByDescending(t => t.CreatedAt)
             .Select(t => new
             {
                 t.Id,
@@ -148,9 +162,13 @@ public class OperatorController : ControllerBase
             .CountAsync(t => t.Bus.OperatorId == operatorId && t.Status == "scheduled" && t.DepartureTime > DateTime.UtcNow);
         var todayBookings = await _db.Bookings
             .CountAsync(b => b.Trip.Bus.OperatorId == operatorId && b.BookedAt.Date == DateTime.UtcNow.Date && b.Status != "cancelled");
-        var totalRevenue = await _db.Payments
+        var successRevenue = await _db.Payments
             .Where(p => p.Status == "success" && p.Booking.Trip.Bus.OperatorId == operatorId)
             .SumAsync(p => p.Amount);
+        var cancellationFees = await _db.Bookings
+            .Where(b => b.Status == "cancelled" && b.Trip.Bus.OperatorId == operatorId)
+            .SumAsync(b => b.DeductionAmount);
+        var totalRevenue = successRevenue + cancellationFees;
 
         return Ok(new { totalBuses, activeTrips, todayBookings, totalRevenue });
     }

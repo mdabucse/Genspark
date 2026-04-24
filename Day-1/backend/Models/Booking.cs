@@ -37,6 +37,12 @@ public class Booking
     [Column("contact_email")]
     public string? ContactEmail { get; set; }
 
+    [Column("refund_amount")]
+    public decimal RefundAmount { get; set; } = 0;
+
+    [Column("deduction_amount")]
+    public decimal DeductionAmount { get; set; } = 0;
+
     // Navigation properties
     [ForeignKey("UserId")]
     public User User { get; set; } = null!;

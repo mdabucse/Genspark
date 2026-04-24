@@ -77,7 +77,10 @@ import { Trip } from '../../../core/models/trip.model';
         <!-- Left: Filters Sidebar -->
         <aside class="filters-sidebar">
           <div class="filters-card">
-            <h3 class="filters-title">Filters</h3>
+            <div class="filters-header">
+              <h3 class="filters-title">Filters</h3>
+              <button class="clear-filters-btn" (click)="resetFilters()">Clear All</button>
+            </div>
             
             <div class="filter-group">
               <h4 class="filter-label">Departure Time</h4>
@@ -196,7 +199,8 @@ import { Trip } from '../../../core/models/trip.model';
                   <div class="bus-card">
                     <div class="card-left">
                       <div class="operator-info">
-                        <h3 class="operator-name">{{ trip.operatorName }}</h3>
+                        <h3 class="bus-name">{{ trip.busName }}</h3>
+                        <p class="operator-sub">by {{ trip.operatorName }}</p>
                         <p class="bus-type">{{ trip.busType }}</p>
                         <div class="amenities">
                           <mat-icon>wifi</mat-icon>
@@ -368,11 +372,33 @@ import { Trip } from '../../../core/models/trip.model';
       top: 100px;
     }
 
+    .filters-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-xl);
+    }
+
     .filters-title {
-      font-size: 1rem;
-      padding: var(--space-md) var(--space-lg);
-      border-bottom: 1px solid var(--border-color);
+      font-size: 1.1rem;
+      font-weight: 800;
       margin: 0;
+      color: var(--text-main);
+    }
+
+    .clear-filters-btn {
+      background: transparent;
+      border: none;
+      color: var(--primary-red);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background 0.2s;
+      &:hover { background: rgba(225,29,72,0.05); }
     }
 
     .filter-group {
@@ -495,14 +521,17 @@ import { Trip } from '../../../core/models/trip.model';
     .bus-card {
       background: white;
       border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
+      border-radius: 14px;
       padding: var(--space-xl);
       display: flex;
       justify-content: space-between;
-      transition: box-shadow 0.2s;
+      transition: all 0.22s ease;
+      border-left: 3px solid transparent;
 
       &:hover {
         box-shadow: var(--shadow-md);
+        border-left-color: var(--primary-red);
+        transform: translateX(2px);
       }
 
       @media (max-width: 768px) {
@@ -527,8 +556,9 @@ import { Trip } from '../../../core/models/trip.model';
 
     .operator-info {
       width: 180px;
-      .operator-name { font-size: 1.1rem; font-weight: 600; margin: 0 0 4px 0; }
-      .bus-type { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 8px 0; }
+      .bus-name { font-size: 1.1rem; font-weight: 700; margin: 0 0 2px 0; color: var(--text-main); }
+      .operator-sub { font-size: 0.8rem; color: var(--text-muted); margin: 0 0 8px 0; font-weight: 500; font-style: italic; }
+      .bus-type { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 8px 0; font-weight: 500; }
       .amenities {
         display: flex;
         gap: 8px;
@@ -637,12 +667,16 @@ import { Trip } from '../../../core/models/trip.model';
 
     .select-btn {
       width: 100%;
+      border-radius: var(--radius-full) !important;
+      font-size: 0.88rem !important;
+      letter-spacing: 0.3px;
 
       &:disabled,
       &.sold-out-btn {
-        background: #9ca3af;
+        background: #9ca3af !important;
         cursor: not-allowed;
         opacity: 0.8;
+        box-shadow: none !important;
       }
     }
 
@@ -813,6 +847,14 @@ export class SearchResultsComponent implements OnInit {
 
   setSort(sortBy: 'price' | 'departure' | 'duration' | 'seats') {
     this.sortBy = sortBy;
+    this.applyFilters();
+  }
+
+  resetFilters() {
+    this.departureWindow = 'all';
+    this.selectedBusTypes.clear();
+    this.maxPrice = this.priceCeiling;
+    this.sortBy = 'price';
     this.applyFilters();
   }
 

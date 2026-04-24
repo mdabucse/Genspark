@@ -14,10 +14,8 @@ import { ToastrService } from 'ngx-toastr';
   imports: [ReactiveFormsModule, RouterLink, MatCardModule, MatInputModule, MatButtonModule, MatIconModule],
   template: `
     <div class="login-page">
-      <!-- High-quality Background Image -->
       <div class="page-bg-overlay">
-        <img src="/Users/mohamedabubakkars/GenSpark/Day-1/frontend/bus-booking-app/public/image.png" alt="Bus background" class="bg-img">
-        <div class="dark-gradient"></div>
+        <div class="bg-pattern"></div>
       </div>
 
       <div class="login-container">
@@ -86,23 +84,20 @@ import { ToastrService } from 'ngx-toastr';
       overflow: hidden;
     }
 
-    /* Background Styles */
     .page-bg-overlay {
       position: absolute;
       inset: 0;
       z-index: 0;
-      
-      .bg-img {
+
+      .bg-pattern {
         width: 100%;
         height: 100%;
-        object-fit: cover;
-        transform: scale(1.05);
-      }
-
-      .dark-gradient {
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);
+        background: 
+          linear-gradient(135deg, rgba(225,29,72,0.06) 0%, transparent 50%),
+          linear-gradient(225deg, rgba(8,145,178,0.06) 0%, transparent 50%),
+          radial-gradient(circle at 20% 80%, rgba(225,29,72,0.08), transparent 40%),
+          radial-gradient(circle at 80% 20%, rgba(8,145,178,0.08), transparent 40%),
+          var(--bg-main);
       }
     }
 
@@ -114,12 +109,11 @@ import { ToastrService } from 'ngx-toastr';
     }
 
     .login-card {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-radius: 16px;
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
       padding: var(--space-2xl) var(--space-xl);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: var(--shadow-lg);
     }
 
     .card-header {
@@ -127,28 +121,28 @@ import { ToastrService } from 'ngx-toastr';
       margin-bottom: var(--space-xl);
 
       .icon-circle {
-        width: 64px;
-        height: 64px;
+        width: 60px;
+        height: 60px;
         background: var(--primary-red-dim);
         color: var(--primary-red);
-        border-radius: 50%;
+        border-radius: 16px;
         display: flex;
         align-items: center;
         justify-content: center;
         margin: 0 auto 16px auto;
-        mat-icon { font-size: 32px; width: 32px; height: 32px; }
+        mat-icon { font-size: 28px; width: 28px; height: 28px; }
       }
 
       h1 {
-        font-size: 1.8rem;
+        font-size: 1.7rem;
         font-weight: 800;
         margin: 0 0 8px 0;
         color: var(--text-main);
       }
 
       p {
-        color: var(--text-secondary);
-        font-size: 0.95rem;
+        color: var(--text-muted);
+        font-size: 0.92rem;
         margin: 0;
       }
     }
@@ -187,7 +181,7 @@ import { ToastrService } from 'ngx-toastr';
     mat-form-field {
       width: 100%;
       ::ng-deep .mat-mdc-text-field-wrapper {
-        background-color: white !important;
+        background-color: #fafbfc !important;
       }
     }
 
@@ -197,22 +191,27 @@ import { ToastrService } from 'ngx-toastr';
       color: white;
       border: none;
       height: 52px;
-      border-radius: 8px;
+      border-radius: 12px;
+      font-family: var(--font-display);
       font-weight: 700;
-      font-size: 1rem;
+      font-size: 0.95rem;
       letter-spacing: 1px;
       cursor: pointer;
-      transition: all 0.3s;
-      box-shadow: 0 8px 16px var(--primary-red-dim);
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 16px rgba(225,29,72,0.25);
 
       &:hover:not(:disabled) {
         background: var(--primary-red-hover);
         transform: translateY(-2px);
-        box-shadow: 0 12px 24px var(--primary-red-dim);
+        box-shadow: 0 8px 24px rgba(225,29,72,0.3);
+      }
+
+      &:active:not(:disabled) {
+        transform: translateY(0);
       }
 
       &:disabled {
-        opacity: 0.7;
+        opacity: 0.6;
         cursor: not-allowed;
       }
     }
@@ -248,15 +247,6 @@ import { ToastrService } from 'ngx-toastr';
 
     @keyframes spin {
       to { transform: rotate(360deg); }
-    }
-
-    .animate-fade-in-up {
-      animation: fadeInUp 0.6s ease-out both;
-    }
-
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
     }
   `]
 })
@@ -295,7 +285,6 @@ export class LoginComponent {
       },
       error: () => {
         this.isLoading = false;
-        // Error handling is managed by the interceptor
       }
     });
   }

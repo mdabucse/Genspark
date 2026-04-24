@@ -46,6 +46,21 @@ public class SeatUnlockJob : BackgroundService
                     await db.SaveChangesAsync(stoppingToken);
                     _logger.LogInformation("Released {Count} expired seat locks", expired.Count);
                 }
+
+                // Mark trips as completed
+                var pastTrips = await db.Trips
+                    .Where(t => t.Status == "scheduled" && t.ArrivalTime < DateTime.UtcNow)
+                    .ToListAsync(stoppingToken);
+
+                if (pastTrips.Any())
+                {
+                    foreach (var t in pastTrips)
+                    {
+                        t.Status = "completed";
+                    }
+                    await db.SaveChangesAsync(stoppingToken);
+                    _logger.LogInformation("Marked {Count} trips as completed", pastTrips.Count);
+                }
             }
             catch (OperationCanceledException)
             {

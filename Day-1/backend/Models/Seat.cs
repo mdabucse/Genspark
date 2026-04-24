@@ -20,7 +20,17 @@ public class Seat
 
     [MaxLength(20)]
     [Column("seat_type")]
-    public string SeatType { get; set; } = string.Empty; // window, aisle, lower, upper
+    public string SeatType { get; set; } = "seater"; // seater, sleeper
+
+    [Column("row")]
+    public int Row { get; set; }
+
+    [Column("column")]
+    public int Column { get; set; }
+
+    [MaxLength(10)]
+    [Column("deck")]
+    public string Deck { get; set; } = "lower"; // lower, upper
 
     [Column("is_active")]
     public bool IsActive { get; set; } = true;

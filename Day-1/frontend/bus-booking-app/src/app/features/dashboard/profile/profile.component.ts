@@ -82,115 +82,118 @@ import { ToastrService } from 'ngx-toastr';
   `,
   styles: [`
     .profile-page {
-      max-width: var(--max-content);
+      max-width: 900px;
       margin: 0 auto;
-      padding: var(--space-2xl) var(--space-lg);
+      padding: var(--space-xl) var(--space-lg);
     }
 
     .profile-container {
-      max-width: 800px;
+      max-width: 600px;
       margin: 0 auto;
     }
 
     .profile-header {
       text-align: center;
-      margin-bottom: var(--space-2xl);
+      margin-bottom: 40px;
 
       .avatar-circle {
-        width: 80px;
-        height: 80px;
-        background: var(--primary-red-dim);
+        width: 100px;
+        height: 100px;
+        background: #f8fafc;
+        border: 1px solid var(--border-color);
         color: var(--primary-red);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin: 0 auto 16px auto;
-        mat-icon { font-size: 40px; width: 40px; height: 40px; }
+        margin: 0 auto 20px auto;
+        box-shadow: var(--shadow-sm);
+        mat-icon { font-size: 48px; width: 48px; height: 48px; }
       }
 
-      h1 { font-size: 2rem; font-weight: 800; margin: 0 0 8px 0; }
-      p { color: var(--text-secondary); margin: 0; }
+      h1 { font-size: 2.2rem; font-weight: 800; margin: 0 0 4px 0; color: var(--text-main); }
+      p { color: var(--text-muted); margin: 0; font-size: 1rem; font-weight: 500; }
     }
 
     .gradient-text {
-      background: linear-gradient(135deg, var(--primary-red), #ff6b6b);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: var(--primary-red);
     }
 
     .profile-card {
-      background: var(--bg-card);
+      background: white;
       border: 1px solid var(--border-color);
-      border-radius: 16px;
-      padding: var(--space-2xl);
+      border-radius: 24px;
+      padding: 32px;
       box-shadow: var(--shadow-md);
     }
 
     .profile-form {
       display: flex;
       flex-direction: column;
-      gap: var(--space-lg);
+      gap: 20px;
     }
 
     .form-row {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--space-xl);
-      @media (max-width: 600px) { grid-template-columns: 1fr; gap: var(--space-md); }
+      grid-template-columns: 1fr;
+      gap: 20px;
     }
 
     .form-field {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
 
       label {
-        font-size: 0.72rem;
-        font-weight: 700;
-        color: var(--text-secondary);
-        letter-spacing: 1px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: var(--text-muted);
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
       }
     }
 
     .readonly-field {
-      opacity: 0.8;
       ::ng-deep .mat-mdc-text-field-wrapper {
-        background-color: #f3f4f6 !important;
+        background-color: #f8fafc !important;
+        cursor: not-allowed;
       }
+      input { color: var(--text-muted) !important; font-weight: 600; }
     }
 
     .form-actions {
-      margin-top: var(--space-lg);
+      margin-top: 12px;
       display: flex;
-      justify-content: flex-end;
     }
 
     .save-btn {
+      width: 100%;
+      height: 54px;
       background: var(--primary-red);
       color: white;
       border: none;
-      padding: 12px 32px;
-      border-radius: 8px;
-      font-weight: 700;
+      border-radius: var(--radius-full);
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 0.95rem;
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
+      gap: 10px;
       cursor: pointer;
-      transition: all 0.3s;
-      box-shadow: 0 8px 16px var(--primary-red-dim);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 14px rgba(225,29,72,0.25);
 
       &:hover:not(:disabled) {
         background: var(--primary-red-hover);
-        transform: translateY(-2px);
-        box-shadow: 0 12px 24px var(--primary-red-dim);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(225,29,72,0.35);
       }
 
       &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
-        box-shadow: none;
+        filter: grayscale(1);
       }
 
       mat-icon { font-size: 20px; width: 20px; height: 20px; }
@@ -199,22 +202,11 @@ import { ToastrService } from 'ngx-toastr';
     .loader {
       width: 20px;
       height: 20px;
-      border: 3px solid rgba(255,255,255,0.3);
+      border: 2px solid rgba(255,255,255,0.3);
       border-radius: 50%;
       border-top-color: #fff;
       display: inline-block;
-      animation: spin 1s ease-in-out infinite;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .animate-fade-in-up {
-      animation: fadeInUp 0.6s ease-out both;
-    }
-
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+      animation: spinSlow 0.8s linear infinite;
     }
   `]
 })

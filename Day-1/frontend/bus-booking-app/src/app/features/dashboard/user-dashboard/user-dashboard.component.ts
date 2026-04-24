@@ -8,6 +8,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { BookingService } from '../../../core/services/booking.service';
+import { CancellationDialogComponent } from './cancellation-dialog.component';
 import { ToastrService } from 'ngx-toastr';
 import { Booking } from '../../../core/models/booking.model';
 
@@ -145,15 +146,12 @@ import { Booking } from '../../../core/models/booking.model';
       align-items: center;
       margin-bottom: var(--space-xl);
 
-      h1 { font-size: 1.8rem; font-weight: 700; margin: 0 0 4px 0; }
-      p { color: var(--text-secondary); margin: 0; }
+      h1 { font-size: 1.8rem; font-weight: 800; margin: 0 0 4px 0; color: var(--text-main); }
+      p { color: var(--text-muted); margin: 0; font-size: 0.92rem; }
     }
 
     .gradient-text {
-      background: linear-gradient(135deg, var(--accent-teal), var(--accent-amber));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: var(--primary-red);
     }
 
     .new-booking-btn {
@@ -161,20 +159,21 @@ import { Booking } from '../../../core/models/booking.model';
       align-items: center;
       gap: var(--space-sm);
       padding: 10px 20px;
-      background: var(--accent-teal);
-      color: var(--text-on-accent);
-      border-radius: var(--radius-md);
+      background: var(--primary-red);
+      color: white;
+      border-radius: var(--radius-full);
       font-family: var(--font-display);
       font-weight: 600;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       text-decoration: none;
       transition: all var(--transition-base);
-      box-shadow: 0 0 16px var(--accent-teal-glow);
+      box-shadow: 0 2px 10px rgba(225,29,72,0.2);
 
       &:hover {
+        background: var(--primary-red-hover);
         transform: translateY(-2px);
-        box-shadow: 0 0 24px var(--accent-teal-glow);
-        color: var(--text-on-accent);
+        box-shadow: 0 4px 16px rgba(225,29,72,0.3);
+        color: white;
       }
       mat-icon { font-size: 18px; width: 18px; height: 18px; }
     }
@@ -188,21 +187,21 @@ import { Booking } from '../../../core/models/booking.model';
     .empty-state {
       text-align: center;
       padding: var(--space-3xl);
-      background: var(--surface-card);
-      border: 1px solid var(--glass-border);
-      border-radius: var(--radius-xl);
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
     }
     .empty-icon {
       width: 80px; height: 80px;
       border-radius: 50%;
-      background: var(--surface-elevated);
+      background: #f1f5f9;
       display: flex;
       align-items: center;
       justify-content: center;
       margin: 0 auto var(--space-lg);
       mat-icon { font-size: 40px; width: 40px; height: 40px; color: var(--text-muted); }
     }
-    .empty-state h3 { font-size: 1.4rem; margin: 0 0 var(--space-sm) 0; }
+    .empty-state h3 { font-size: 1.4rem; margin: 0 0 var(--space-sm) 0; color: var(--text-main); }
     .empty-state p { color: var(--text-secondary); margin: 0 0 var(--space-xl) 0; }
 
     .primary-btn {
@@ -210,29 +209,32 @@ import { Booking } from '../../../core/models/booking.model';
       align-items: center;
       gap: var(--space-sm);
       padding: 12px 28px;
-      background: var(--accent-teal);
-      color: var(--text-on-accent);
-      border-radius: var(--radius-md);
+      background: var(--primary-red);
+      color: white;
+      border-radius: var(--radius-full);
       font-family: var(--font-display);
       font-weight: 600;
       text-decoration: none;
       transition: all var(--transition-base);
-      &:hover { transform: translateY(-2px); color: var(--text-on-accent); }
+      box-shadow: 0 2px 10px rgba(225,29,72,0.2);
+      &:hover { transform: translateY(-2px); color: white; background: var(--primary-red-hover); }
       mat-icon { font-size: 18px; width: 18px; height: 18px; }
     }
 
-    // Booking Card
+    /* Booking Card */
+    .bookings-list { display: flex; flex-direction: column; gap: 16px; }
+
     .booking-card {
-      background: var(--surface-card);
-      border: 1px solid var(--glass-border);
-      border-radius: var(--radius-lg);
-      margin-bottom: var(--space-md);
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
       overflow: hidden;
-      transition: all var(--transition-base);
+      transition: all 0.25s ease;
 
       &:hover {
-        border-color: var(--accent-teal-dim);
-        box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+        box-shadow: var(--shadow-md);
+        border-color: rgba(0,0,0,0.12);
+        transform: translateY(-1px);
       }
     }
 
@@ -241,7 +243,7 @@ import { Booking } from '../../../core/models/booking.model';
       justify-content: space-between;
       align-items: center;
       padding: var(--space-lg);
-      border-bottom: 1px solid var(--glass-border);
+      border-bottom: 1px solid var(--border-color);
       flex-wrap: wrap;
       gap: var(--space-md);
     }
@@ -253,8 +255,9 @@ import { Booking } from '../../../core/models/booking.model';
 
       .city {
         font-family: var(--font-display);
-        font-size: 1.2rem;
+        font-size: 1.15rem;
         font-weight: 700;
+        color: var(--text-main);
       }
       .arrow {
         font-size: 18px; width: 18px; height: 18px;
@@ -269,12 +272,12 @@ import { Booking } from '../../../core/models/booking.model';
     }
 
     .booking-ref {
-      font-family: var(--font-mono);
-      font-size: 0.8rem;
+      font-family: 'SF Mono', Menlo, monospace;
+      font-size: 0.78rem;
       color: var(--text-muted);
-      background: var(--surface-elevated);
+      background: #f1f5f9;
       padding: 4px 10px;
-      border-radius: var(--radius-sm);
+      border-radius: 6px;
     }
 
     .status-badge {
@@ -286,16 +289,16 @@ import { Booking } from '../../../core/models/booking.model';
       border-radius: var(--radius-full);
     }
     .status-badge.confirmed {
-      background: var(--success-dim);
-      color: var(--success);
+      background: rgba(5,150,105,0.1);
+      color: #059669;
     }
     .status-badge.cancelled {
-      background: var(--danger-dim);
-      color: var(--danger);
+      background: rgba(225,29,72,0.08);
+      color: #e11d48;
     }
     .status-badge.pending {
-      background: var(--warning-dim);
-      color: var(--warning);
+      background: rgba(245,158,11,0.1);
+      color: #d97706;
     }
 
     .card-body {
@@ -315,14 +318,15 @@ import { Booking } from '../../../core/models/booking.model';
 
       mat-icon {
         font-size: 18px; width: 18px; height: 18px;
-        color: var(--accent-teal);
+        color: var(--primary-red);
         margin-top: 3px;
+        opacity: 0.7;
       }
 
       div { display: flex; flex-direction: column; }
-      .label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 2px; }
-      .value { font-weight: 500; font-size: 0.9rem; }
-      .teal { color: var(--accent-teal); font-family: var(--font-mono); }
+      .label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+      .value { font-weight: 500; font-size: 0.9rem; color: var(--text-main); }
+      .teal { color: var(--accent-cyan); font-family: 'SF Mono', Menlo, monospace; font-size: 0.85rem; }
     }
 
     .card-footer {
@@ -330,8 +334,8 @@ import { Booking } from '../../../core/models/booking.model';
       justify-content: space-between;
       align-items: center;
       padding: var(--space-md) var(--space-lg);
-      background: var(--surface-elevated);
-      border-top: 1px solid var(--glass-border);
+      background: #f8fafc;
+      border-top: 1px solid var(--border-color);
       flex-wrap: wrap;
       gap: var(--space-md);
     }
@@ -341,12 +345,12 @@ import { Booking } from '../../../core/models/booking.model';
       align-items: baseline;
       gap: var(--space-sm);
     }
-    .fare-label { font-size: 0.85rem; color: var(--text-muted); }
+    .fare-label { font-size: 0.8rem; color: var(--text-muted); }
     .fare-amount {
       font-family: var(--font-display);
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: var(--accent-amber);
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-main);
     }
 
     .card-actions {
@@ -359,32 +363,32 @@ import { Booking } from '../../../core/models/booking.model';
       align-items: center;
       gap: 4px;
       padding: 6px 14px;
-      border: 1px solid var(--glass-border);
+      border: 1px solid var(--border-color);
       background: transparent;
-      border-radius: var(--radius-sm);
+      border-radius: 8px;
       font-family: var(--font-display);
       font-weight: 600;
       font-size: 0.8rem;
       cursor: pointer;
-      transition: all var(--transition-base);
+      transition: all 0.2s ease;
 
       mat-icon { font-size: 16px; width: 16px; height: 16px; }
     }
 
     .action-btn.download {
-      color: var(--accent-teal);
-      border-color: var(--accent-teal-dim);
-      &:hover { background: hsla(174, 100%, 42%, 0.1); }
+      color: var(--accent-cyan);
+      border-color: rgba(8,145,178,0.2);
+      &:hover { background: rgba(8,145,178,0.08); }
     }
     .action-btn.cancel {
-      color: var(--danger);
-      border-color: var(--danger-dim);
-      &:hover:not(:disabled) { background: var(--danger-dim); }
+      color: #e11d48;
+      border-color: rgba(225,29,72,0.15);
+      &:hover:not(:disabled) { background: rgba(225,29,72,0.06); }
       &:disabled {
-        opacity: 0.5;
+        opacity: 0.4;
         cursor: not-allowed;
         color: var(--text-muted);
-        border-color: var(--glass-border);
+        border-color: var(--border-color);
       }
     }
 
@@ -461,18 +465,29 @@ export class UserDashboardComponent implements OnInit {
     const depTime = new Date(booking.trip.departureTime);
     const now = new Date();
     const hoursDiff = (depTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-    return hoursDiff > 24;
+    return hoursDiff > 2; // Redbus style: close window 2 hours before departure
   }
 
   cancelBooking(id: number) {
-    if (confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
-      this.bookingService.cancelBooking(id).subscribe({
-        next: () => {
-          this.toastr.success('Booking cancelled successfully');
-          this.loadBookings();
-        }
-      });
-    }
+    const dialogRef = this.dialog.open(CancellationDialogComponent, {
+      data: { bookingId: id },
+      width: '450px',
+      panelClass: 'custom-dialog-container'
+    });
+
+    dialogRef.afterClosed().subscribe(confirmed => {
+      if (confirmed) {
+        this.bookingService.cancelBooking(id).subscribe({
+          next: () => {
+            this.toastr.success('Booking cancelled successfully. Refund processed.');
+            this.loadBookings();
+          },
+          error: (err) => {
+            this.toastr.error(err.error?.message || 'Failed to cancel booking');
+          }
+        });
+      }
+    });
   }
 
   downloadTicket(id: number) {

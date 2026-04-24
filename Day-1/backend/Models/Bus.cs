@@ -37,6 +37,15 @@ public class Bus
     [Column("is_active")]
     public bool IsActive { get; set; } = true;
 
+    [Column("rows")]
+    public int Rows { get; set; } = 5;
+
+    [Column("cols")]
+    public int Columns { get; set; } = 4;
+
+    [Column("has_upper_deck")]
+    public bool HasUpperDeck { get; set; } = false;
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

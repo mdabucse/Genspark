@@ -14,12 +14,25 @@ import { ToastrService } from 'ngx-toastr';
   imports: [CommonModule, MatIconModule, MatProgressSpinnerModule],
   template: `
     <div class="page-bg">
-      <div class="search-layout">
-        <!-- Mock Sidebar for visual consistency -->
-        <aside class="filters-sidebar">
-          <div class="filters-card mock-sidebar"></div>
-        </aside>
+      <!-- Progress Steps -->
+      <div class="progress-bar animate-fade-in-up">
+        <div class="step active">
+          <div class="step-circle">1</div>
+          <span>Seats</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step">
+          <div class="step-circle">2</div>
+          <span>Passengers</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step">
+          <div class="step-circle">3</div>
+          <span>Payment</span>
+        </div>
+      </div>
 
+      <div class="content-layout">
         <main class="results-main">
           @if (isLoading) {
             <div class="loading-state">
@@ -32,7 +45,8 @@ import { ToastrService } from 'ngx-toastr';
               <div class="bus-card">
                 <div class="card-left">
                   <div class="operator-info">
-                    <h3 class="operator-name">{{ trip.operatorName }}</h3>
+                    <h3 class="bus-name">{{ trip.busName || trip.operatorName }}</h3>
+                    <p class="operator-sub">by {{ trip.operatorName }}</p>
                     <p class="bus-type">{{ trip.busType }}</p>
                     <div class="amenities">
                       <mat-icon>wifi</mat-icon>
@@ -99,20 +113,35 @@ import { ToastrService } from 'ngx-toastr';
                       </div>
 
                       <div class="decks-container">
-                        <!-- All Seats (Single Deck) -->
-                        <div class="deck-box">
-                          <div class="deck-header">
-                            <h4>Available Seats</h4>
-                            <mat-icon>airline_seat_recline_normal</mat-icon>
+                        @if (trip.hasUpperDeck) {
+                          <div class="deck-toggle">
+                            <button [class.active]="currentDeck === 'lower'" (click)="currentDeck = 'lower'">Lower Deck</button>
+                            <button [class.active]="currentDeck === 'upper'" (click)="currentDeck = 'upper'">Upper Deck</button>
                           </div>
-                          <div class="seats-grid">
-                            @for (seat of seats; track seat.seatId) {
+                        }
+
+                        <div class="deck-box">
+                          <div class="bus-body" [style.grid-template-columns]="'repeat(' + (trip.columns || 4) + ', 1fr)'">
+                            @for (seat of getSeatsForDeck(currentDeck); track seat.seatId) {
                               <div 
-                                class="seat-box" 
-                                [ngClass]="getSeatClass(seat)"
-                                (click)="toggleSeat(seat)"
+                                class="seat-container"
+                                [style.grid-row]="(seat.row || 0) + 1"
+                                [style.grid-column]="(seat.column || 0) + 1"
+                                [class.is-sleeper]="seat.seatType === 'sleeper'"
                               >
-                                {{ seat.seatNumber }}
+                                <div 
+                                  class="seat-box" 
+                                  [ngClass]="getSeatClass(seat)"
+                                  [class.sleeper]="seat.seatType === 'sleeper'"
+                                  (click)="toggleSeat(seat)"
+                                >
+                                  @if (seat.seatType === 'sleeper') {
+                                    <mat-icon>king_bed</mat-icon>
+                                  } @else {
+                                    <mat-icon>chair</mat-icon>
+                                  }
+                                  <span class="seat-label">{{ seat.seatNumber }}</span>
+                                </div>
                               </div>
                             }
                           </div>
@@ -126,11 +155,11 @@ import { ToastrService } from 'ngx-toastr';
                         <div class="points">
                           <div class="point-row">
                             <span class="point-label">Boarding Point</span>
-                            <span class="point-value">{{ trip.source }} Station - {{ trip.departureTime | date:'HH:mm' }}</span>
+                            <span class="point-value">{{ trip.pickupPoint || (trip.source + ' Station') }} - {{ trip.departureTime | date:'HH:mm' }}</span>
                           </div>
                           <div class="point-row">
                             <span class="point-label">Dropping Point</span>
-                            <span class="point-value">{{ trip.destination }} Station - {{ trip.arrivalTime | date:'HH:mm' }}</span>
+                            <span class="point-value">{{ trip.dropPoint || (trip.destination + ' Station') }} - {{ trip.arrivalTime | date:'HH:mm' }}</span>
                           </div>
                         </div>
 
@@ -185,24 +214,14 @@ import { ToastrService } from 'ngx-toastr';
   `,
   styles: [`
     .page-bg {
-      background: var(--bg-light);
+      background: var(--bg-main);
       min-height: calc(100vh - var(--header-height));
       padding: var(--space-xl) var(--space-lg);
     }
 
-    .search-layout {
+    .content-layout {
       max-width: var(--max-content);
       margin: 0 auto;
-      display: grid;
-      grid-template-columns: 260px 1fr;
-      gap: var(--space-xl);
-    }
-
-    .mock-sidebar {
-      height: 400px;
-      background: white;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
     }
 
     .loading-state {
@@ -214,10 +233,11 @@ import { ToastrService } from 'ngx-toastr';
     // Expanded Card
     .expanded-card {
       background: white;
-      border: 1px solid var(--primary-red);
-      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
       overflow: hidden;
-      margin-bottom: 100px; /* space for floating bar */
+      margin-bottom: 100px;
+      box-shadow: var(--shadow-sm);
     }
 
     .bus-card {
@@ -234,9 +254,10 @@ import { ToastrService } from 'ngx-toastr';
     }
 
     .operator-info {
-      width: 180px;
-      .operator-name { font-size: 1.1rem; font-weight: 600; margin: 0 0 4px 0; }
-      .bus-type { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 8px 0; }
+      width: 200px;
+      .bus-name { font-size: 1.1rem; font-weight: 700; margin: 0 0 2px 0; color: var(--text-main); }
+      .operator-sub { font-size: 0.78rem; color: var(--text-muted); margin: 0 0 6px 0; font-weight: 500; }
+      .bus-type { font-size: 0.82rem; color: var(--text-secondary); margin: 0 0 8px 0; font-weight: 500; }
       .amenities { display: flex; gap: 8px; mat-icon { font-size: 16px; width: 16px; height: 16px; color: var(--text-muted); } }
     }
 
@@ -287,8 +308,9 @@ import { ToastrService } from 'ngx-toastr';
 
     // Seat Layout Area
     .seat-selection-box {
-      background: #fafafa;
-      padding: var(--space-xl);
+      background: #f8fafc;
+      padding: var(--space-xl) var(--space-2xl);
+      border-top: 1px solid var(--border-color);
     }
 
     .no-seats-state {
@@ -369,54 +391,79 @@ import { ToastrService } from 'ngx-toastr';
 
     .decks-container {
       display: flex;
-      gap: var(--space-2xl);
+      flex-direction: column;
+      gap: var(--space-xl);
     }
 
-    .deck-box {
-      background: white;
-      border: 1px solid var(--primary-red);
-      border-radius: var(--radius-md);
-      padding: var(--space-lg);
-      min-width: 200px;
-    }
-
-    .deck-header {
+    .deck-toggle {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: var(--space-lg);
-      h4 { font-size: 0.95rem; margin: 0; color: var(--text-secondary); font-weight: 500; }
-      mat-icon { color: var(--text-muted); font-size: 20px; width: 20px; height: 20px; }
+      gap: 12px;
+      margin-bottom: 12px;
+      button {
+        padding: 8px 16px; border: 1px solid var(--border-color); background: white; border-radius: 20px; cursor: pointer;
+        &.active { background: var(--primary-red); color: white; border-color: var(--primary-red); }
+      }
     }
 
-    .seats-grid {
+    .bus-body {
       display: grid;
-      grid-template-columns: 1fr 1fr;
       gap: 12px;
-      justify-items: center;
+      padding: 30px;
+      background: white;
+      border: 3px solid #334155;
+      border-radius: 40px 15px 15px 40px;
+      position: relative;
+      box-shadow: var(--shadow-sm);
+      margin: 0 auto;
+      max-width: fit-content;
+    }
+
+    .seat-container {
+      position: relative;
+      &.is-sleeper { grid-column: span 2; }
     }
 
     .seat-box {
-      width: 40px; height: 40px;
-      border-radius: 4px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.75rem; font-weight: 600;
+      width: 44px; height: 44px;
+      border-radius: 8px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-size: 0.65rem; font-weight: 800;
       cursor: pointer;
-      user-select: none;
-      transition: all 0.1s;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
       
+      mat-icon { font-size: 20px; width: 20px; height: 20px; margin-bottom: 2px; }
+
       &.sleeper {
-        height: 60px; // Sleepers are longer
+        width: 100%; height: 44px;
       }
       
       &.avail {
-        background: white; border: 1px solid var(--border-color); color: var(--text-secondary);
-        &:hover { border-color: var(--primary-red); color: var(--primary-red); }
+        background: white; border: 1.5px solid #e2e8f0; color: #64748b;
+        &:hover { 
+          border-color: var(--primary-red); 
+          color: var(--primary-red); 
+          background: #fff1f2;
+          transform: translateY(-2px);
+        }
       }
-      &.selected { background: var(--primary-red); border: 1px solid var(--primary-red); color: white; }
-      &.booked { background: #e5e7eb; border: 1px solid #d1d5db; color: #9ca3af; cursor: not-allowed; }
-      &.locked { background: #fca5a5; border: 1px solid #ef4444; color: white; cursor: not-allowed; }
+      &.selected { 
+        background: var(--primary-red); 
+        border: 1.5px solid var(--primary-red); 
+        color: white; 
+        box-shadow: 0 6px 12px rgba(225, 29, 72, 0.3);
+        transform: translateY(-2px);
+      }
+      &.booked { 
+        background: #f1f5f9; border: 1.5px solid #e2e8f0; color: #cbd5e1; cursor: not-allowed; 
+        mat-icon { opacity: 0.5; }
+      }
+      &.locked { 
+        background: #fef2f2; border: 1.5px solid #fee2e2; color: #ef4444; cursor: not-allowed; 
+      }
     }
+
+    .seat-label { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); background: white; padding: 0 4px; font-size: 0.6rem; border-radius: 4px; border: 1px solid #eee; }
 
     .layout-right {
       width: 300px;
@@ -457,48 +504,56 @@ import { ToastrService } from 'ngx-toastr';
     .floating-action {
       position: fixed;
       bottom: 24px;
-      right: calc((100vw - var(--max-content)) / 2);
-      width: 500px;
-      background: white;
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-md);
-      border: 1px solid var(--border-color);
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(640px, calc(100vw - 48px));
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 20px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 24px;
+      padding: 16px 28px;
       z-index: 100;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
 
     .trip-quick-info {
       display: flex; flex-direction: column;
-      .op { font-weight: 600; font-size: 0.95rem; }
-      .bt { font-size: 0.8rem; color: var(--text-secondary); }
+      .op { font-weight: 600; font-size: 0.92rem; }
+      .bt { font-size: 0.78rem; color: var(--text-muted); }
     }
 
-    .time-quick .time { font-size: 1.2rem; font-weight: 700; }
+    .time-quick .time { font-size: 1.1rem; font-weight: 700; font-family: var(--font-display); }
 
     .proceed-btn {
       background: var(--primary-red);
       color: white;
       border: none;
-      padding: 12px 24px;
-      border-radius: var(--radius-sm);
-      font-weight: 600;
-      font-size: 1rem;
+      padding: 12px 28px;
+      border-radius: 12px;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.95rem;
       cursor: pointer;
       display: flex; align-items: center; gap: 8px;
-      transition: background 0.2s;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 14px rgba(225,29,72,0.25);
 
-      &:hover:not(:disabled) { background: var(--primary-red-hover); }
-      &:disabled { opacity: 0.5; cursor: not-allowed; }
-      mat-icon { font-size: 20px; width: 20px; height: 20px; }
+      &:hover:not(:disabled) {
+        background: var(--primary-red-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(225,29,72,0.35);
+      }
+      &:active:not(:disabled) { transform: translateY(0); }
+      &:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+      mat-icon { font-size: 18px; width: 18px; height: 18px; }
     }
 
     @media (max-width: 1024px) {
-      .search-layout { grid-template-columns: 1fr; }
-      .mock-sidebar { display: none; }
-      .floating-action { right: 24px; left: 24px; width: auto; }
+      .content-layout { padding: 0; }
     }
     @media (max-width: 768px) {
       .seat-layout-row { flex-direction: column; }
@@ -520,6 +575,7 @@ export class SeatSelectionComponent implements OnInit, OnDestroy {
   selectedSeats: SeatStatus[] = [];
   isLoading = true;
   isLocking = false;
+  currentDeck = 'lower';
 
   refreshInterval: any;
 
@@ -565,6 +621,10 @@ export class SeatSelectionComponent implements OnInit, OnDestroy {
         if (hideLoader) this.isLoading = false;
       }
     });
+  }
+
+  getSeatsForDeck(deck: string): SeatStatus[] {
+    return this.seats.filter(s => s.deck === deck);
   }
 
   // All seats shown in a single flat layout

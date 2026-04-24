@@ -13,4 +13,5 @@ public interface IBookingService
     Task<List<BookingResponseDto>> GetUserBookingsAsync(int userId);
     Task<BookingResponseDto?> GetBookingDetailsAsync(int bookingId, int userId);
     Task CancelBookingAsync(int bookingId, int userId);
+    Task<CancellationQuoteDto> GetCancellationQuoteAsync(int bookingId, int userId);
 }

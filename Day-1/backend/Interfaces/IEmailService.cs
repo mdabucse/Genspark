@@ -9,4 +9,5 @@ public interface IEmailService
     Task SendCancellationEmailAsync(Booking booking);
     Task SendCancellationEmailToAsync(Booking booking, string recipientEmail, string recipientName);
     Task SendOperatorApprovalEmailAsync(User user);
+    Task SendBusBlockedNotificationAsync(Booking booking);
 }

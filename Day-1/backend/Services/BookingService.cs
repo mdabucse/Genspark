@@ -56,6 +56,7 @@ public class BookingService : IBookingService
             BookingRef = GenerateBookingRef(),
             TotalAmount = totalFare,
             Status = "pending",
+            BookedAt = DateTime.UtcNow,
             ContactEmail = string.IsNullOrWhiteSpace(dto.ContactEmail) ? null : dto.ContactEmail.Trim()
         };
 
@@ -191,10 +192,18 @@ public class BookingService : IBookingService
 
         if (booking.Status == "confirmed")
         {
-            // Rule: Must be 24+ hours before departure
-            var hoursLeft = (booking.Trip.DepartureTime - DateTime.UtcNow).TotalHours;
-            if (hoursLeft < 24)
-                throw new ArgumentException("Cancellation window closed (less than 24 hours to departure)");
+            var quote = await GetCancellationQuoteAsync(bookingId, userId);
+            if (!quote.CanCancel)
+                throw new ArgumentException(quote.CannotCancelReason ?? "Cancellation window closed");
+
+            booking.RefundAmount = quote.RefundAmount;
+            booking.DeductionAmount = quote.DeductionAmount;
+        }
+        else
+        {
+            // Pending bookings get full refund (or just cancelled)
+            booking.RefundAmount = booking.TotalAmount;
+            booking.DeductionAmount = 0;
         }
 
         booking.Status = "cancelled";
@@ -241,6 +250,59 @@ public class BookingService : IBookingService
         {
             _logger.LogError(ex, "Failed to send cancellation email for booking {BookingRef}", booking.BookingRef);
         }
+    }
+
+    public async Task<CancellationQuoteDto> GetCancellationQuoteAsync(int bookingId, int userId)
+    {
+        var booking = await _db.Bookings
+            .Include(b => b.Trip)
+            .FirstOrDefaultAsync(b => b.Id == bookingId && b.UserId == userId);
+
+        if (booking == null) throw new KeyNotFoundException("Booking not found");
+
+        var hoursLeft = (booking.Trip.DepartureTime - DateTime.UtcNow).TotalHours;
+        var quote = new CancellationQuoteDto
+        {
+            BookingId = bookingId,
+            TotalAmount = booking.TotalAmount,
+            CanCancel = true
+        };
+
+        if (booking.Status == "cancelled")
+        {
+            quote.CanCancel = false;
+            quote.CannotCancelReason = "Booking is already cancelled";
+            return quote;
+        }
+
+        if (hoursLeft < 2)
+        {
+            quote.CanCancel = false;
+            quote.CannotCancelReason = "Cancellation is not allowed within 2 hours of departure";
+            quote.DeductionAmount = booking.TotalAmount;
+            quote.RefundAmount = 0;
+            quote.CancellationPolicy = "Less than 2 hours: 0% Refund";
+        }
+        else if (hoursLeft < 12)
+        {
+            quote.DeductionAmount = booking.TotalAmount * 0.50m;
+            quote.RefundAmount = booking.TotalAmount - quote.DeductionAmount;
+            quote.CancellationPolicy = "2 to 12 hours: 50% Refund";
+        }
+        else if (hoursLeft < 24)
+        {
+            quote.DeductionAmount = booking.TotalAmount * 0.25m;
+            quote.RefundAmount = booking.TotalAmount - quote.DeductionAmount;
+            quote.CancellationPolicy = "12 to 24 hours: 75% Refund";
+        }
+        else
+        {
+            quote.DeductionAmount = booking.TotalAmount * 0.10m;
+            quote.RefundAmount = booking.TotalAmount - quote.DeductionAmount;
+            quote.CancellationPolicy = "More than 24 hours: 90% Refund";
+        }
+
+        return quote;
     }
 
     private static string GenerateBookingRef()
