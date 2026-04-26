@@ -1,4 +1,5 @@
 using BusBooking.API.Data;
+using BusBooking.API.DTOs.Admin;
 using BusBooking.API.DTOs.Trip;
 using BusBooking.API.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -14,11 +15,15 @@ public class AdminController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IEmailService _emailService;
+    private readonly ILogger<AdminController> _logger;
+    private readonly IRouteService _routeService;
 
-    public AdminController(AppDbContext db, IEmailService emailService)
+    public AdminController(AppDbContext db, IEmailService emailService, ILogger<AdminController> logger, IRouteService routeService)
     {
         _db = db;
         _emailService = emailService;
+        _logger = logger;
+        _routeService = routeService;
     }
 
     private async Task LogActionAsync(string action, string description, string targetType, string? targetId)
@@ -87,8 +92,29 @@ public class AdminController : ControllerBase
     }
 
     [HttpPut("operators/{id}/block")]
-    public async Task<IActionResult> BlockOperator(int id)
+    public async Task<IActionResult> BlockOperator(int id, [FromBody] ConfirmActionDto dto)
     {
+        // 1. Get current Admin Email from Claims
+        var adminEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+        if (string.IsNullOrEmpty(adminEmail))
+        {
+            return Unauthorized(new { error = "Administrator identity not found in session." });
+        }
+
+        // 2. Find Admin in DB
+        var admin = await _db.Users.FirstOrDefaultAsync(u => u.Email == adminEmail);
+        if (admin == null)
+        {
+            return Unauthorized(new { error = "Administrator account not found." });
+        }
+
+        // 3. Verify Password
+        if (!BCrypt.Net.BCrypt.Verify(dto.Password, admin.PasswordHash))
+        {
+            _logger.LogWarning("Failed block operator attempt: Invalid password for admin {Email}", adminEmail);
+            return StatusCode(403, new { error = "Invalid administrator password. Access denied." });
+        }
+
         var user = await _db.Users.FindAsync(id);
         if (user == null || user.Role != "operator")
             return NotFound(new { error = "Operator not found" });
@@ -139,8 +165,18 @@ public class AdminController : ControllerBase
     }
 
     [HttpPut("operators/{id}/unblock")]
-    public async Task<IActionResult> UnblockOperator(int id)
+    public async Task<IActionResult> UnblockOperator(int id, [FromBody] ConfirmActionDto dto)
     {
+        // Verify Admin Password
+        var adminEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+        var admin = await _db.Users.FirstOrDefaultAsync(u => u.Email == adminEmail);
+        
+        if (admin == null || !BCrypt.Net.BCrypt.Verify(dto.Password, admin.PasswordHash))
+        {
+            _logger.LogWarning("Failed unblock operator attempt: Invalid password for admin {Email}", adminEmail);
+            return StatusCode(403, new { error = "Invalid administrator password. Access denied." });
+        }
+
         var user = await _db.Users.FindAsync(id);
         if (user == null || user.Role != "operator")
             return NotFound(new { error = "Operator not found" });
@@ -333,15 +369,8 @@ public class AdminController : ControllerBase
     [HttpPost("routes")]
     public async Task<IActionResult> CreateRoute([FromBody] CreateRouteDto dto)
     {
-        var route = new Models.Route
-        {
-            Source = dto.Source,
-            Destination = dto.Destination,
-            DistanceKm = dto.DistanceKm
-        };
-        _db.Routes.Add(route);
-        await _db.SaveChangesAsync();
-        return Ok(new { route.Id, route.Source, route.Destination, route.DistanceKm });
+        var result = await _routeService.CreateRouteAsync(dto);
+        return Ok(result);
     }
 
     [HttpGet("dashboard")]

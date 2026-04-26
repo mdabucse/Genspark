@@ -73,22 +73,49 @@ public class RouteService : IRouteService
 
     public async Task<RouteResponseDto> CreateRouteAsync(CreateRouteDto dto)
     {
-        var route = new Models.Route
-        {
-            Source = dto.Source,
-            Destination = dto.Destination,
-            DistanceKm = dto.DistanceKm
-        };
+        var source = dto.Source.Trim();
+        var destination = dto.Destination.Trim();
 
-        _db.Routes.Add(route);
+        // 1. Check if the forward route already exists
+        var existingRoute = await _db.Routes.FirstOrDefaultAsync(r => 
+            r.Source.ToLower() == source.ToLower() && 
+            r.Destination.ToLower() == destination.ToLower());
+
+        if (existingRoute == null)
+        {
+            existingRoute = new Models.Route
+            {
+                Source = source,
+                Destination = destination,
+                DistanceKm = dto.DistanceKm
+            };
+            _db.Routes.Add(existingRoute);
+        }
+
+        // 2. Check if the reverse route already exists
+        var existingReverse = await _db.Routes.AnyAsync(r => 
+            r.Source.ToLower() == destination.ToLower() && 
+            r.Destination.ToLower() == source.ToLower());
+
+        if (!existingReverse)
+        {
+            var reverseRoute = new Models.Route
+            {
+                Source = destination,
+                Destination = source,
+                DistanceKm = dto.DistanceKm
+            };
+            _db.Routes.Add(reverseRoute);
+        }
+
         await _db.SaveChangesAsync();
 
         return new RouteResponseDto
         {
-            Id = route.Id,
-            Source = route.Source,
-            Destination = route.Destination,
-            DistanceKm = route.DistanceKm,
+            Id = existingRoute.Id,
+            Source = existingRoute.Source,
+            Destination = existingRoute.Destination,
+            DistanceKm = existingRoute.DistanceKm,
             TripCount = 0
         };
     }

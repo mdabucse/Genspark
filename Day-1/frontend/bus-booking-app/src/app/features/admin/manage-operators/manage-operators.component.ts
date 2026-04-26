@@ -8,11 +8,13 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AdminService, OperatorData } from '../../../core/services/admin.service';
 import { ToastrService } from 'ngx-toastr';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { ConfirmActionDialogComponent } from './confirm-action-dialog.component';
 
 @Component({
   selector: 'app-manage-operators',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatTableModule, MatButtonModule, MatIconModule, MatChipsModule, MatProgressSpinnerModule],
+  imports: [CommonModule, MatCardModule, MatTableModule, MatButtonModule, MatIconModule, MatChipsModule, MatProgressSpinnerModule, MatDialogModule],
   template: `
     <div class="operators-container">
       <div class="header">
@@ -134,6 +136,7 @@ import { ToastrService } from 'ngx-toastr';
 export class ManageOperatorsComponent implements OnInit {
   private adminService = inject(AdminService);
   private toastr = inject(ToastrService);
+  private dialog = inject(MatDialog);
 
   operators: OperatorData[] = [];
   displayedColumns: string[] = ['name', 'phone', 'buses', 'status', 'actions'];
@@ -175,20 +178,39 @@ export class ManageOperatorsComponent implements OnInit {
   }
 
   block(id: number) {
-    if (confirm('Block this operator? They will not be able to log in or manage buses.')) {
-      this.adminService.blockOperator(id).subscribe(() => {
-        this.toastr.warning('Operator blocked');
-        this.loadOperators();
-      });
-    }
+    const dialogRef = this.dialog.open(ConfirmActionDialogComponent, {
+      width: '400px'
+    });
+
+    dialogRef.afterClosed().subscribe(password => {
+      if (password) {
+        this.adminService.blockOperator(id, password).subscribe({
+          next: () => {
+            this.toastr.success('Password verified. Operator blocked.');
+            this.loadOperators();
+          },
+          error: (err) => {
+            // Toastr already handles error messages via interceptor, but we can add specific handling if needed
+          }
+        });
+      }
+    });
   }
 
   unblock(id: number) {
-    if (confirm('Unblock this operator?')) {
-      this.adminService.unblockOperator(id).subscribe(() => {
-        this.toastr.success('Operator unblocked');
-        this.loadOperators();
-      });
-    }
+    const dialogRef = this.dialog.open(ConfirmActionDialogComponent, {
+      width: '400px'
+    });
+
+    dialogRef.afterClosed().subscribe(password => {
+      if (password) {
+        this.adminService.unblockOperator(id, password).subscribe({
+          next: () => {
+            this.toastr.success('Password verified. Operator unblocked.');
+            this.loadOperators();
+          }
+        });
+      }
+    });
   }
 }

@@ -94,12 +94,12 @@ export class AdminService {
     return this.http.put(`${this.apiUrl}/operators/${id}/reject`, {});
   }
 
-  blockOperator(id: number): Observable<any> {
-    return this.http.put(`${this.apiUrl}/operators/${id}/block`, {});
+  blockOperator(id: number, password: string): Observable<any> {
+    return this.http.put(`${this.apiUrl}/operators/${id}/block`, { password });
   }
 
-  unblockOperator(id: number): Observable<any> {
-    return this.http.put(`${this.apiUrl}/operators/${id}/unblock`, {});
+  unblockOperator(id: number, password: string): Observable<any> {
+    return this.http.put(`${this.apiUrl}/operators/${id}/unblock`, { password });
   }
 
   // Bookings
