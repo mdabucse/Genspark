@@ -15,7 +15,17 @@ namespace NotificationAppBLLibrary
                 return;
             }
 
-            _notificationService.SendNotification(new EmailNotification(), recipient, message);
+            Notification notification = new Notification
+            {
+                Message = message,
+                NotificationType = "Email"
+            };
+
+            _notificationService.SendNotification(
+                new EmailNotification(),
+                recipient,
+                notification
+            );
         }
 
         public static void CreateAccount(AccountRepository accountRepository, UserRepository userRepository)
@@ -162,7 +172,7 @@ namespace NotificationAppBLLibrary
             if (deletedAccount != null)
             {
                 Console.WriteLine("Account deleted successfully!");
-                
+
                 // Also delete the associated user
                 if (!string.IsNullOrWhiteSpace(account.UserName))
                 {

@@ -1,24 +1,21 @@
 ﻿using NotificationAppBLLibrary;
-using NotificationAppDALLibrary;
 using NotificationAppModelLibrary;
-
 
 class Program
 {
     static void Main(string[] args)
     {
-        AccountRepository accountRepository = new AccountRepository();
-        UserRepository userRepository = new UserRepository();
-
+        NotificationService notificationService =
+            new NotificationService();
 
         while (true)
         {
-            Console.WriteLine("\n===== ACCOUNT MENU =====");
-            Console.WriteLine("1. Create Account");
-            Console.WriteLine("2. View Account");
-            Console.WriteLine("3. Update Account");
-            Console.WriteLine("4. Delete Account");
-            Console.WriteLine("5. Exit");
+            Console.WriteLine("\n===== Notification System =====");
+
+            Console.WriteLine("1. Send Notification");
+            Console.WriteLine("2. View Sent Notifications");
+            Console.WriteLine("3. Exit");
+
             Console.Write("Enter your choice: ");
 
             int choice = int.Parse(Console.ReadLine() ?? "0");
@@ -26,30 +23,129 @@ class Program
             switch (choice)
             {
                 case 1:
-                    CRUDOperations.CreateAccount(accountRepository, userRepository);
+
+                    // User Details
+                    Console.Write("Enter Username: ");
+                    string username = Console.ReadLine() ?? "";
+
+                    Console.Write("Enter Email: ");
+                    string email = Console.ReadLine() ?? "";
+
+                    Console.Write("Enter Phone Number: ");
+                    string phoneNumber = Console.ReadLine() ?? "";
+
+                    UserDetails user = new UserDetails
+                    {
+                        UserName = username,
+                        Email = email,
+                        PhoneNumber = phoneNumber
+                    };
+
+                    // Notification Type
+                    Console.WriteLine("\nChoose Notification Type");
+
+                    Console.WriteLine("1. Email");
+                    Console.WriteLine("2. SMS");
+
+                    Console.Write("Enter choice: ");
+
+                    int notificationChoice =
+                        int.Parse(Console.ReadLine() ?? "0");
+
+                    INotification notificationSender;
+
+                    string notificationType;
+
+                    if (notificationChoice == 1)
+                    {
+                        notificationSender = new EmailNotification();
+
+                        notificationType = "Email";
+                    }
+                    else if (notificationChoice == 2)
+                    {
+                        notificationSender = new SmsNotification();
+
+                        notificationType = "SMS";
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid Notification Type");
+
+                        break;
+                    }
+
+                    // Message
+                    Console.Write("Enter Message: ");
+
+                    string message = Console.ReadLine() ?? "";
+
+                    Notification notification = new Notification
+                    {
+                        Message = message,
+                        NotificationType = notificationType
+                    };
+
+                    try
+                    {
+                        notificationService.SendNotification(
+                            notificationSender,
+                            user,
+                            notification
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error : {ex.Message}");
+                    }
+
                     break;
 
                 case 2:
-                    CRUDOperations.ViewAccount(accountRepository, userRepository);
+
+                    List<Notification> notifications =
+                        notificationService.GetAllNotifications();
+
+                    if (notifications.Count == 0)
+                    {
+                        Console.WriteLine("No Notifications Sent Yet");
+                    }
+                    else
+                    {
+                        Console.WriteLine("\n===== Sent Notifications =====");
+
+                        foreach (var item in notifications)
+                        {
+                            Console.WriteLine(
+                                $"Notification Type : {item.NotificationType}"
+                            );
+
+                            Console.WriteLine(
+                                $"Message : {item.Message}"
+                            );
+
+                            Console.WriteLine(
+                                $"Sent Date : {item.SentDate}"
+                            );
+
+                            Console.WriteLine("--------------------------------");
+                        }
+                    }
+
                     break;
 
                 case 3:
-                    CRUDOperations.UpdateAccount(accountRepository, userRepository);
-                    break;
 
-                case 4:
-                    CRUDOperations.DeleteAccount(accountRepository, userRepository);
-                    break;
+                    Console.WriteLine("Exiting Application...");
 
-                case 5:
-                    Console.WriteLine("Exiting...");
                     return;
 
                 default:
-                    Console.WriteLine("Invalid choice");
+
+                    Console.WriteLine("Invalid Choice");
+
                     break;
             }
         }
     }
-
 }
