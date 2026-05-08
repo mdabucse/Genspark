@@ -1,20 +1,25 @@
 ﻿using NotificationAppBLLibrary;
+using NotificationAppDALLibrary;
 using NotificationAppModelLibrary;
 
 class Program
 {
     static void Main(string[] args)
     {
-        NotificationService notificationService =
-            new NotificationService();
+        AccountRepository accountRepository = new AccountRepository();
+
+        UserRepository userRepository = new UserRepository();
+
+        NotificationService notificationService = new NotificationService();
 
         while (true)
         {
             Console.WriteLine("\n===== Notification System =====");
 
-            Console.WriteLine("1. Send Notification");
-            Console.WriteLine("2. View Sent Notifications");
-            Console.WriteLine("3. Exit");
+            Console.WriteLine("1. Create Account");
+            Console.WriteLine("2. Send Notification");
+            Console.WriteLine("3. View Notifications");
+            Console.WriteLine("4. Exit");
 
             Console.Write("Enter your choice: ");
 
@@ -22,9 +27,9 @@ class Program
 
             switch (choice)
             {
+                // CREATE ACCOUNT
                 case 1:
 
-                    // User Details
                     Console.Write("Enter Username: ");
                     string username = Console.ReadLine() ?? "";
 
@@ -34,6 +39,11 @@ class Program
                     Console.Write("Enter Phone Number: ");
                     string phoneNumber = Console.ReadLine() ?? "";
 
+                    Console.Write("Enter Initial Balance: ");
+
+                    float balance =
+                        float.Parse(Console.ReadLine() ?? "0");
+
                     UserDetails user = new UserDetails
                     {
                         UserName = username,
@@ -41,8 +51,61 @@ class Program
                         PhoneNumber = phoneNumber
                     };
 
-                    // Notification Type
-                    Console.WriteLine("\nChoose Notification Type");
+                    Account account = new Account
+                    {
+                        UserName = username,
+                        Balance = balance
+                    };
+
+                    var createdUser =
+                        userRepository.Create(user);
+
+                    var createdAccount =
+                        accountRepository.Create(account);
+
+                    Console.WriteLine(
+                        "\nAccount Created Successfully"
+                    );
+
+                    Console.WriteLine(
+                        $"Account Number : {createdAccount.AccountNumber}"
+                    );
+
+                    break;
+
+                // SEND NOTIFICATION
+                case 2:
+
+                    Console.Write("Enter Account Number: ");
+
+                    string accountNumber =
+                        Console.ReadLine() ?? "";
+
+                    var existingAccount =
+                        accountRepository.Read(accountNumber);
+
+                    if (existingAccount == null)
+                    {
+                        Console.WriteLine("Account Not Found");
+
+                        break;
+                    }
+
+                    var existingUser =
+                        userRepository.Read(
+                            existingAccount.UserName ?? ""
+                        );
+
+                    if (existingUser == null)
+                    {
+                        Console.WriteLine("User Not Found");
+
+                        break;
+                    }
+
+                    Console.WriteLine(
+                        "\nChoose Notification Type"
+                    );
 
                     Console.WriteLine("1. Email");
                     Console.WriteLine("2. SMS");
@@ -58,64 +121,93 @@ class Program
 
                     if (notificationChoice == 1)
                     {
-                        notificationSender = new EmailNotification();
+                        notificationSender =
+                            new EmailNotification();
 
                         notificationType = "Email";
                     }
                     else if (notificationChoice == 2)
                     {
-                        notificationSender = new SmsNotification();
+                        notificationSender =
+                            new SmsNotification();
 
                         notificationType = "SMS";
                     }
                     else
                     {
-                        Console.WriteLine("Invalid Notification Type");
+                        Console.WriteLine(
+                            "Invalid Notification Type"
+                        );
 
                         break;
                     }
 
-                    // Message
                     Console.Write("Enter Message: ");
 
-                    string message = Console.ReadLine() ?? "";
+                    string message =
+                        Console.ReadLine() ?? "";
 
-                    Notification notification = new Notification
-                    {
-                        Message = message,
-                        NotificationType = notificationType
-                    };
+                    Notification notification =
+                        new Notification
+                        {
+                            AccountNumber =
+                                existingAccount.AccountNumber,
+
+                            UserName =
+                                existingUser.UserName,
+
+                            Message = message,
+
+                            NotificationType =
+                                notificationType
+                        };
 
                     try
                     {
                         notificationService.SendNotification(
                             notificationSender,
-                            user,
+                            existingUser,
                             notification
                         );
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error : {ex.Message}");
+                        Console.WriteLine(
+                            $"Error : {ex.Message}"
+                        );
                     }
 
                     break;
 
-                case 2:
+                // VIEW NOTIFICATIONS
+                case 3:
 
                     List<Notification> notifications =
-                        notificationService.GetAllNotifications();
+                        notificationService
+                            .GetAllNotifications();
 
                     if (notifications.Count == 0)
                     {
-                        Console.WriteLine("No Notifications Sent Yet");
+                        Console.WriteLine(
+                            "No Notifications Sent Yet"
+                        );
                     }
                     else
                     {
-                        Console.WriteLine("\n===== Sent Notifications =====");
+                        Console.WriteLine(
+                            "\n===== Sent Notifications ====="
+                        );
 
                         foreach (var item in notifications)
                         {
+                            Console.WriteLine(
+                                $"Account Number : {item.AccountNumber}"
+                            );
+
+                            Console.WriteLine(
+                                $"Username : {item.UserName}"
+                            );
+
                             Console.WriteLine(
                                 $"Notification Type : {item.NotificationType}"
                             );
@@ -128,21 +220,27 @@ class Program
                                 $"Sent Date : {item.SentDate}"
                             );
 
-                            Console.WriteLine("--------------------------------");
+                            Console.WriteLine(
+                                "--------------------------------"
+                            );
                         }
                     }
 
                     break;
 
-                case 3:
+                case 4:
 
-                    Console.WriteLine("Exiting Application...");
+                    Console.WriteLine(
+                        "Exiting Application..."
+                    );
 
                     return;
 
                 default:
 
-                    Console.WriteLine("Invalid Choice");
+                    Console.WriteLine(
+                        "Invalid Choice"
+                    );
 
                     break;
             }

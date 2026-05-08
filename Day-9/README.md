@@ -2,6 +2,8 @@
 
 This project was refactored from a single console application into a layered multi-project architecture using C# class libraries and project references.
 
+<video controls src="Notification-Output.mp4" title="Title"></video>
+
 The main goal of this refactor was to implement:
 
 - Separation of Concerns (SoC)

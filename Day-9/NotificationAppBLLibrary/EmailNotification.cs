@@ -16,10 +16,10 @@ namespace NotificationAppBLLibrary
 
             try
             {
-                var fromAddress = new MailAddress("mdabucse@gmail.com", "Account Notification");
+                var fromAddress = new MailAddress("mail@gmail.com", "Account Notification");
                 var toAddress = new MailAddress(userDetails.Email);
 
-                string fromPassword = "vtvzortmzojvvqio"; // Your SMTP password or app-specific password
+                string fromPassword = "password"; 
                 string subject = "Account Details";
 
                 var smtp = new SmtpClient
