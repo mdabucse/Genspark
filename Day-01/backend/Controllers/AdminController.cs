@@ -1,0 +1,411 @@
+using BusBooking.API.Data;
+using BusBooking.API.DTOs.Admin;
+using BusBooking.API.DTOs.Trip;
+using BusBooking.API.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace BusBooking.API.Controllers;
+
+[ApiController]
+[Route("api/admin")]
+[Authorize(Roles = "admin")]
+public class AdminController : ControllerBase
+{
+    private readonly AppDbContext _db;
+    private readonly IEmailService _emailService;
+    private readonly ILogger<AdminController> _logger;
+    private readonly IRouteService _routeService;
+
+    public AdminController(AppDbContext db, IEmailService emailService, ILogger<AdminController> logger, IRouteService routeService)
+    {
+        _db = db;
+        _emailService = emailService;
+        _logger = logger;
+        _routeService = routeService;
+    }
+
+    private async Task LogActionAsync(string action, string description, string targetType, string? targetId)
+    {
+        var adminEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "admin@system.com";
+        var log = new Models.AuditLog
+        {
+            Action = action,
+            Description = description,
+            TargetType = targetType,
+            TargetId = targetId,
+            AdminEmail = adminEmail,
+            CreatedAt = DateTime.UtcNow
+        };
+        _db.AuditLogs.Add(log);
+        await _db.SaveChangesAsync();
+    }
+
+    [HttpGet("operators")]
+    public async Task<IActionResult> GetOperators()
+    {
+        var operators = await _db.Users
+            .Where(u => u.Role == "operator")
+            .Select(u => new
+            {
+                u.Id, u.Name, u.Email, u.Phone,
+                u.IsActive, u.IsVerified, u.CreatedAt,
+                BusCount = u.Buses.Count
+            })
+            .ToListAsync();
+        return Ok(operators);
+    }
+
+    [HttpPut("operators/{id}/approve")]
+    public async Task<IActionResult> ApproveOperator(int id)
+    {
+        var user = await _db.Users.FindAsync(id);
+        if (user == null || user.Role != "operator")
+            return NotFound(new { error = "Operator not found" });
+
+        user.IsActive = true;
+        user.IsVerified = true;
+        await _db.SaveChangesAsync();
+
+        await LogActionAsync("Approve Operator", $"Approved operator {user.Name} ({user.Email})", "Operator", user.Id.ToString());
+
+        try { await _emailService.SendOperatorApprovalEmailAsync(user); }
+        catch { /* Log but don't fail */ }
+
+        return Ok(new { message = "Operator approved" });
+    }
+
+    [HttpPut("operators/{id}/reject")]
+    public async Task<IActionResult> RejectOperator(int id)
+    {
+        var user = await _db.Users.FindAsync(id);
+        if (user == null || user.Role != "operator")
+            return NotFound(new { error = "Operator not found" });
+
+        user.IsActive = false;
+        user.IsVerified = false;
+        await _db.SaveChangesAsync();
+
+        await LogActionAsync("Reject Operator", $"Rejected operator {user.Name} ({user.Email})", "Operator", user.Id.ToString());
+        return Ok(new { message = "Operator rejected" });
+    }
+
+    [HttpPut("operators/{id}/block")]
+    public async Task<IActionResult> BlockOperator(int id, [FromBody] ConfirmActionDto dto)
+    {
+        // 1. Get current Admin Email from Claims
+        var adminEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+        if (string.IsNullOrEmpty(adminEmail))
+        {
+            return Unauthorized(new { error = "Administrator identity not found in session." });
+        }
+
+        // 2. Find Admin in DB
+        var admin = await _db.Users.FirstOrDefaultAsync(u => u.Email == adminEmail);
+        if (admin == null)
+        {
+            return Unauthorized(new { error = "Administrator account not found." });
+        }
+
+        // 3. Verify Password
+        if (!BCrypt.Net.BCrypt.Verify(dto.Password, admin.PasswordHash))
+        {
+            _logger.LogWarning("Failed block operator attempt: Invalid password for admin {Email}", adminEmail);
+            return StatusCode(403, new { error = "Invalid administrator password. Access denied." });
+        }
+
+        var user = await _db.Users.FindAsync(id);
+        if (user == null || user.Role != "operator")
+            return NotFound(new { error = "Operator not found" });
+
+        user.IsActive = false;
+
+        // Cancel all future scheduled trips for this operator's buses
+        var futureTrips = await _db.Trips
+            .Include(t => t.Bus)
+            .Where(t => t.Bus.OperatorId == id && t.Status == "scheduled" && t.DepartureTime > DateTime.UtcNow)
+            .ToListAsync();
+
+        foreach (var trip in futureTrips)
+        {
+            trip.Status = "cancelled";
+
+            // Release all seat locks for this trip
+            var seatStatuses = await _db.TripSeatStatuses.Where(ss => ss.TripId == trip.Id).ToListAsync();
+            foreach (var ss in seatStatuses)
+            {
+                ss.Status = "available";
+                ss.LockedBy = null;
+                ss.LockedUntil = null;
+            }
+
+            // Cancel all bookings on this trip and notify passengers
+            var bookings = await _db.Bookings
+                .Include(b => b.User)
+                .Include(b => b.Trip).ThenInclude(t => t.Route)
+                .Where(b => b.TripId == trip.Id && (b.Status == "confirmed" || b.Status == "pending"))
+                .ToListAsync();
+
+            foreach (var booking in bookings)
+            {
+                booking.Status = "cancelled";
+                booking.CancelledAt = DateTime.UtcNow;
+
+                try { await _emailService.SendCancellationEmailAsync(booking); }
+                catch { /* Log but don't fail */ }
+            }
+        }
+
+        await _db.SaveChangesAsync();
+
+        await LogActionAsync("Block Operator", $"Blocked operator {user.Name} ({user.Email}) and cancelled {futureTrips.Count} future trips", "Operator", user.Id.ToString());
+
+        return Ok(new { message = "Operator blocked", cancelledTrips = futureTrips.Count });
+    }
+
+    [HttpPut("operators/{id}/unblock")]
+    public async Task<IActionResult> UnblockOperator(int id, [FromBody] ConfirmActionDto dto)
+    {
+        // Verify Admin Password
+        var adminEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+        var admin = await _db.Users.FirstOrDefaultAsync(u => u.Email == adminEmail);
+        
+        if (admin == null || !BCrypt.Net.BCrypt.Verify(dto.Password, admin.PasswordHash))
+        {
+            _logger.LogWarning("Failed unblock operator attempt: Invalid password for admin {Email}", adminEmail);
+            return StatusCode(403, new { error = "Invalid administrator password. Access denied." });
+        }
+
+        var user = await _db.Users.FindAsync(id);
+        if (user == null || user.Role != "operator")
+            return NotFound(new { error = "Operator not found" });
+
+        user.IsActive = true;
+        await _db.SaveChangesAsync();
+
+        await LogActionAsync("Unblock Operator", $"Unblocked operator {user.Name} ({user.Email})", "Operator", user.Id.ToString());
+        return Ok(new { message = "Operator unblocked" });
+    }
+
+    [HttpGet("bookings")]
+    public async Task<IActionResult> GetAllBookings(
+        [FromQuery] int? operatorId = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        var query = _db.Bookings
+            .Include(b => b.User)
+            .Include(b => b.Passengers).ThenInclude(p => p.Seat)
+            .Include(b => b.Trip).ThenInclude(t => t.Bus).ThenInclude(b => b.Operator)
+            .Include(b => b.Trip).ThenInclude(t => t.Route)
+            .AsQueryable();
+
+        if (operatorId.HasValue)
+        {
+            query = query.Where(b => b.Trip.Bus.OperatorId == operatorId.Value);
+        }
+
+        query = query.OrderByDescending(b => b.BookedAt);
+
+        var total = await query.CountAsync();
+        var bookings = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(b => new
+            {
+                b.Id,
+                b.BookingRef,
+                b.Status,
+                b.TotalAmount,
+                b.BookedAt,
+                UserName = b.User.Name,
+                UserEmail = b.User.Email,
+                BusName = b.Trip.Bus.BusName,
+                OperatorName = b.Trip.Bus.Operator.Name,
+                Route = b.Trip.Route.Source + " → " + b.Trip.Route.Destination,
+                DepartureTime = b.Trip.DepartureTime,
+                Passengers = b.Passengers.Select(p => new
+                {
+                    Name = p.PassengerName,
+                    Age = p.PassengerAge,
+                    Gender = p.PassengerGender,
+                    SeatNumber = p.Seat.SeatNumber
+                })
+            })
+            .ToListAsync();
+
+        return Ok(new { total, page, pageSize, bookings });
+    }
+
+    [HttpGet("reports/daily")]
+    public async Task<IActionResult> DailyReport([FromQuery] DateTime? date)
+    {
+        var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+
+        var bookingsCount = await _db.Bookings
+            .Where(b => b.BookedAt.Date == targetDate)
+            .CountAsync();
+
+        var successRevenue = await _db.Payments
+            .Where(p => p.Status == "success" && p.PaidAt.HasValue && p.PaidAt.Value.Date == targetDate)
+            .SumAsync(p => p.Amount);
+
+        var cancellationFees = await _db.Bookings
+            .Where(b => b.Status == "cancelled" && b.CancelledAt.HasValue && b.CancelledAt.Value.Date == targetDate)
+            .SumAsync(b => b.DeductionAmount);
+
+        var totalRevenue = successRevenue + cancellationFees;
+
+        var cancelledCount = await _db.Bookings
+            .Where(b => b.Status == "cancelled" && b.CancelledAt.HasValue && b.CancelledAt.Value.Date == targetDate)
+            .CountAsync();
+
+        return Ok(new
+        {
+            date = targetDate,
+            totalBookings = bookingsCount,
+            totalRevenue = totalRevenue,
+            cancelledBookings = cancelledCount
+        });
+    }
+
+    [HttpGet("reports/revenue-by-operator")]
+    public async Task<IActionResult> RevenueByOperator()
+    {
+        var successRevenueByOperator = await _db.Payments
+            .Where(p => p.Status == "success")
+            .Include(p => p.Booking).ThenInclude(b => b.Trip).ThenInclude(t => t.Bus).ThenInclude(b => b.Operator)
+            .GroupBy(p => new { p.Booking.Trip.Bus.Operator.Id, p.Booking.Trip.Bus.Operator.Name })
+            .Select(g => new
+            {
+                OperatorId = g.Key.Id,
+                OperatorName = g.Key.Name,
+                SuccessAmount = g.Sum(p => p.Amount),
+                BookingCount = g.Count()
+            })
+            .ToListAsync();
+
+        var cancellationFeesByOperator = await _db.Bookings
+            .Where(b => b.Status == "cancelled" && b.DeductionAmount > 0)
+            .Include(b => b.Trip).ThenInclude(t => t.Bus).ThenInclude(b => b.Operator)
+            .GroupBy(b => new { b.Trip.Bus.Operator.Id, b.Trip.Bus.Operator.Name })
+            .Select(g => new
+            {
+                OperatorId = g.Key.Id,
+                Fees = g.Sum(b => b.DeductionAmount)
+            })
+            .ToListAsync();
+
+        var report = successRevenueByOperator.Select(s => new
+        {
+            s.OperatorId,
+            s.OperatorName,
+            TotalRevenue = s.SuccessAmount + (cancellationFeesByOperator.FirstOrDefault(c => c.OperatorId == s.OperatorId)?.Fees ?? 0),
+            s.BookingCount
+        }).ToList();
+
+        return Ok(report);
+    }
+
+    [HttpGet("reports/operator-performance")]
+    public async Task<IActionResult> GetOperatorPerformance()
+    {
+        var operators = await _db.Users
+            .Where(u => u.Role == "operator")
+            .Select(u => new
+            {
+                u.Id,
+                u.Name,
+                u.Email,
+                u.Phone,
+                BusCount = u.Buses.Count,
+                TotalBookings = _db.Bookings.Count(b => b.Trip.Bus.OperatorId == u.Id && b.Status != "cancelled"),
+                TotalRevenue = _db.Payments.Where(p => p.Status == "success" && p.Booking.Trip.Bus.OperatorId == u.Id).Sum(p => p.Amount) + 
+                               _db.Bookings.Where(b => b.Status == "cancelled" && b.Trip.Bus.OperatorId == u.Id).Sum(b => b.DeductionAmount),
+                ActiveTrips = _db.Trips.Count(t => t.Bus.OperatorId == u.Id && t.Status == "scheduled" && t.DepartureTime > DateTime.UtcNow),
+                CompletedTrips = _db.Trips.Count(t => t.Bus.OperatorId == u.Id && t.Status == "completed"),
+                CancelledTrips = _db.Trips.Count(t => t.Bus.OperatorId == u.Id && t.Status == "cancelled")
+            })
+            .ToListAsync();
+
+        return Ok(operators);
+    }
+
+    [HttpGet("reports/seat-occupancy")]
+    public async Task<IActionResult> SeatOccupancy()
+    {
+        var stats = await _db.Trips
+            .Where(t => t.Status != "cancelled")
+            .Select(t => new
+            {
+                t.Id,
+                TotalSeats = t.Bus.Capacity,
+                BookedSeats = t.TripSeatStatuses.Count(ss => ss.Status == "booked")
+            })
+            .ToListAsync();
+
+        var avgOccupancy = stats.Any()
+            ? stats.Average(s => (double)s.BookedSeats / s.TotalSeats * 100)
+            : 0;
+
+        return Ok(new { averageOccupancyPercent = Math.Round(avgOccupancy, 2), tripCount = stats.Count });
+    }
+
+    [HttpGet("routes")]
+    public async Task<IActionResult> GetRoutes()
+    {
+        var routes = await _db.Routes
+            .Select(r => new
+            {
+                r.Id, r.Source, r.Destination, r.DistanceKm,
+                TripCount = r.Trips.Count,
+                r.CreatedAt
+            })
+            .ToListAsync();
+        return Ok(routes);
+    }
+
+    [HttpPost("routes")]
+    public async Task<IActionResult> CreateRoute([FromBody] CreateRouteDto dto)
+    {
+        var result = await _routeService.CreateRouteAsync(dto);
+        return Ok(result);
+    }
+
+    [HttpGet("dashboard")]
+    public async Task<IActionResult> Dashboard()
+    {
+        var totalUsers = await _db.Users.CountAsync(u => u.Role == "customer");
+        var totalOperators = await _db.Users.CountAsync(u => u.Role == "operator");
+        var pendingOperators = await _db.Users.CountAsync(u => u.Role == "operator" && !u.IsActive);
+        var tripsToday = await _db.Trips.CountAsync(t => t.DepartureTime.Date == DateTime.UtcNow.Date);
+        var successRevenue = await _db.Payments.Where(p => p.Status == "success").SumAsync(p => p.Amount);
+        var totalCancellationFees = await _db.Bookings.Where(b => b.Status == "cancelled").SumAsync(b => b.DeductionAmount);
+        var totalRevenue = successRevenue + totalCancellationFees;
+
+        var successRevenueToday = await _db.Payments
+            .Where(p => p.Status == "success" && p.PaidAt.HasValue && p.PaidAt.Value.Date == DateTime.UtcNow.Date)
+            .SumAsync(p => p.Amount);
+        var cancellationFeesToday = await _db.Bookings
+            .Where(b => b.Status == "cancelled" && b.CancelledAt.HasValue && b.CancelledAt.Value.Date == DateTime.UtcNow.Date)
+            .SumAsync(b => b.DeductionAmount);
+        var todayRevenue = successRevenueToday + cancellationFeesToday;
+
+        return Ok(new
+        {
+            totalUsers, totalOperators, pendingOperators,
+            tripsToday, totalRevenue, todayRevenue
+        });
+    }
+
+    [HttpGet("audit-logs")]
+    public async Task<IActionResult> GetAuditLogs()
+    {
+        var logs = await _db.AuditLogs
+            .OrderByDescending(l => l.CreatedAt)
+            .Take(100)
+            .ToListAsync();
+        return Ok(logs);
+    }
+}
