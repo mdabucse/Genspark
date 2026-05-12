@@ -6,6 +6,8 @@ Today we learned and implemented Entity Framework Core with PostgreSQL using Cod
 
 ---
 
+![alt text](image.png)
+
 # 1. Introduction to Entity Framework Core
 
 ## What is Entity Framework Core?
