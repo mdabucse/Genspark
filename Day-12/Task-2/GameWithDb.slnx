@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="GameWithDbBLL/GameWithDbBLL.csproj" />
+  <Project Path="GameWithDbDAL/GameWithDbDAL.csproj" />
+  <Project Path="GameWithDbExceptions/GameWithDbExceptions.csproj" />
+  <Project Path="GameWithDbFE/GameWithDbFE.csproj" />
+  <Project Path="GameWithDbModelLibrary/GameWithDbModelLibrary.csproj" />
+</Solution>
