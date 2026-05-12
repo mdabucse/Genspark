@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="EfPracticeBL/EfPracticeBL.csproj" />
+  <Project Path="EfPracticeDAL/EfPracticeDAL.csproj" />
+  <Project Path="EfPracticeFE/EfPracticeFE.csproj" />
+  <Project Path="EfPracticeModel/EfPracticeModel.csproj" />
+</Solution>
