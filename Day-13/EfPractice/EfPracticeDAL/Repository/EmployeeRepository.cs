@@ -7,7 +7,7 @@ namespace EfPractice.DAL
     public class EmployeeRepo
     {
         EmployeeContext employee;
-        
+
         public EmployeeRepo()
         {
             employee = new EmployeeContext();
@@ -31,6 +31,18 @@ namespace EfPractice.DAL
             employee.Remove(emp);
             employee.SaveChanges();
             System.Console.WriteLine("Value Removed Successfully");
+        }
+
+        public void GetEmployee()
+        {
+            var employees = employee.employees;
+
+            foreach (var item in employees)
+            {
+                Console.WriteLine(
+                    $"Id: {item.Id} Name: {item.Name} Email: {item.Email}"
+                );
+            }
         }
     }
 }
