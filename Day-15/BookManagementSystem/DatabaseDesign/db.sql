@@ -104,3 +104,26 @@ CREATE TABLE FinePayment
     REFERENCES Borrowing(BorrowingId)
 );
 
+-- Calculate Member Fine
+CREATE OR REPLACE FUNCTION calculate_member_fine(
+    p_member_id INT
+)
+RETURNS DECIMAL
+AS
+$$
+DECLARE
+    total_fine DECIMAL;
+BEGIN
+
+    SELECT COALESCE(SUM(FineAmount), 0)
+    INTO total_fine
+    FROM Borrowing
+    WHERE MemberId = p_member_id
+    AND FineAmount > 0;
+
+    RETURN total_fine;
+
+END;
+$$
+LANGUAGE plpgsql;
+
