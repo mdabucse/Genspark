@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="LMS.BL/LMS.BL.csproj" />
+  <Project Path="LMS.Context/LMS.Context.csproj" />
+  <Project Path="LMS.DAL/LMS.DAL.csproj" />
+  <Project Path="LMS.Exceptions/LMS.Exceptions.csproj" />
+  <Project Path="LMS.FE/LMS.FE.csproj" />
+  <Project Path="LMS.Interfaces/LMS.Interfaces.csproj" />
+  <Project Path="LMS.Models/LMS.Models.csproj" />
+</Solution>
