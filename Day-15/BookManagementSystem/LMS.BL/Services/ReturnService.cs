@@ -2,6 +2,7 @@ using LMS.Context.DbContextFolder;
 using LMS.Interfaces.Repositories;
 using LMS.Interfaces.Services;
 using LMS.Models.Entities;
+using LMS.Exceptions.BorrowingExceptions;
 
 namespace LMS.BL.Services;
 
@@ -33,14 +34,12 @@ public class ReturnService : IReturnService
 
             if (borrowing == null)
             {
-                throw new Exception(
-                    "Borrowing record not found");
+                throw new BorrowingNotFoundException();
             }
 
             if (borrowing.Isreturned == true)
             {
-                throw new Exception(
-                    "Book already returned");
+                throw new AlreadyReturnedException();
             }
 
             DateTime dueDate =

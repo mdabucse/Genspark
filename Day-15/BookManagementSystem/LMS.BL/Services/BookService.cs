@@ -1,6 +1,7 @@
 using LMS.Interfaces.Repositories;
 using LMS.Interfaces.Services;
 using LMS.Models.Entities;
+using LMS.Exceptions.BookExceptions;
 
 namespace LMS.BL.Services;
 
@@ -25,7 +26,7 @@ public class BookService : IBookService
 
         if (book == null)
         {
-            throw new Exception("Book not found");
+            throw new BookNotFoundException();
         }
 
         for (int i = 0; i < numberOfCopies; i++)

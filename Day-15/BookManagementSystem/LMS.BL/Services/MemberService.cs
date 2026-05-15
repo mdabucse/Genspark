@@ -1,6 +1,7 @@
 using LMS.Interfaces.Repositories;
 using LMS.Interfaces.Services;
 using LMS.Models.Entities;
+using LMS.Exceptions.MemberExceptions;
 
 namespace LMS.BL.Services;
 
@@ -20,7 +21,7 @@ public class MemberService : IMemberService
 
         if (existingMember != null)
         {
-            throw new Exception("Email already exists");
+            throw new DuplicateEmailException();
         }
 
         member.Isactive = true;
@@ -47,7 +48,7 @@ public class MemberService : IMemberService
 
         if (member == null)
         {
-            throw new Exception("Member not found");
+            throw new MemberNotFoundException();
         }
 
         member.Isactive = false;

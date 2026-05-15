@@ -3,6 +3,10 @@ using LMS.Interfaces.Repositories;
 using LMS.Interfaces.Services;
 using LMS.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using LMS.Exceptions.BorrowingExceptions;
+using LMS.Exceptions.MemberExceptions;
+using LMS.Exceptions.BookExceptions;
+using LMS.Exceptions.FineExceptions;
 
 namespace LMS.BL.Services;
 
@@ -43,12 +47,12 @@ public class BorrowingService : IBorrowingService
 
             if (member == null)
             {
-                throw new Exception("Member not found");
+                throw new MemberNotFoundException();
             }
 
             if (member.Isactive == false)
             {
-                throw new Exception("Membership inactive");
+                throw new InactiveMembershipException();
             }
 
             decimal pendingFine =
@@ -56,7 +60,7 @@ public class BorrowingService : IBorrowingService
 
             if (pendingFine > 500)
             {
-                throw new Exception("Pending fine exceeds limit");
+                throw new FineLimitExceededException();
             }
 
             int activeBorrowCount =
@@ -67,7 +71,7 @@ public class BorrowingService : IBorrowingService
 
             if (activeBorrowCount >= maxLimit)
             {
-                throw new Exception("Borrow limit exceeded");
+                throw new BorrowLimitExceededException();
             }
 
             bool alreadyBorrowed =
@@ -77,8 +81,7 @@ public class BorrowingService : IBorrowingService
 
             if (alreadyBorrowed)
             {
-                throw new Exception(
-                    "Member already borrowed this book");
+                throw new AlreadyBorrowedException();
             }
 
             Bookcopy? copy =
@@ -86,7 +89,7 @@ public class BorrowingService : IBorrowingService
 
             if (copy == null)
             {
-                throw new Exception("No available copies");
+                throw new BookUnavailableException();
             }
 
             int maxDays =
