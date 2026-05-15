@@ -71,6 +71,7 @@ _ReSharper*/
 # Allow safe templates
 !**/appsettings.Development.json
 !**/appsettings.example.json
+*.lscache
 
 # ==============================
 # Databases
