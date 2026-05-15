@@ -43,7 +43,7 @@ public class ReturnService : IReturnService
             }
 
             DateTime dueDate =
-                    borrowing.Duedate;
+                borrowing.Duedate;
 
             DateTime returnDate =
                 DateTime.Now;
@@ -64,15 +64,12 @@ public class ReturnService : IReturnService
 
             borrowing.Fineamount = fine;
 
-            _borrowingRepository.UpdateBorrowing(
-                borrowing);
+            _borrowingRepository.Update(borrowing);
 
             borrowing.Copy.Isavailable = true;
 
             _borrowingRepository.UpdateBookCopy(
                 borrowing.Copy);
-
-            _context.SaveChanges();
 
             transaction.Commit();
         }

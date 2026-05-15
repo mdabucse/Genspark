@@ -16,13 +16,13 @@ public class BookService : IBookService
 
     public void AddBook(Book book)
     {
-        _bookRepository.AddBook(book);
+        _bookRepository.Add(book);
     }
 
     public void AddBookCopies(int bookId, int numberOfCopies)
     {
         Book? book =
-            _bookRepository.GetBookById(bookId);
+            _bookRepository.GetById(bookId);
 
         if (book == null)
         {
@@ -38,13 +38,13 @@ public class BookService : IBookService
                 Isdamaged = false
             };
 
-            _bookRepository.AddBookCopy(copy);
+            _bookRepository.Add(book);
         }
     }
 
     public List<Book> GetAllBooks()
     {
-        return _bookRepository.GetAllBooks();
+        return _bookRepository.GetAll();
     }
 
     public List<Book> SearchBooks(string keyword)

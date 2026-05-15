@@ -3,14 +3,15 @@ using LMS.Models.Entities;
 namespace LMS.Interfaces.Repositories;
 
 public interface IBorrowingRepository
+    : IGenericRepository<Borrowing>
 {
     Bookcopy? GetAvailableBookCopy(int bookId);
 
     int GetActiveBorrowCount(int memberId);
 
-    bool HasActiveBorrowing(int memberId, int bookId);
-
-    void AddBorrowing(Borrowing borrowing);
+    bool HasActiveBorrowing(
+        int memberId,
+        int bookId);
 
     void UpdateBookCopy(Bookcopy copy);
 

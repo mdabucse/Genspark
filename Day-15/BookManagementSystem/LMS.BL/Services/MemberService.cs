@@ -28,12 +28,12 @@ public class MemberService : IMemberService
 
         member.Createdat = DateTime.Now;
 
-        _memberRepository.AddMember(member);
+        _memberRepository.Add(member);
     }
 
     public List<Member> GetAllMembers()
     {
-        return _memberRepository.GetAllMembers();
+        return _memberRepository.GetAll();
     }
 
     public Member? SearchMemberByEmail(string email)
@@ -44,7 +44,7 @@ public class MemberService : IMemberService
     public void DeactivateMember(int memberId)
     {
         Member? member =
-            _memberRepository.GetMemberById(memberId);
+            _memberRepository.GetById(memberId);
 
         if (member == null)
         {
@@ -53,6 +53,6 @@ public class MemberService : IMemberService
 
         member.Isactive = false;
 
-        _memberRepository.UpdateMember(member);
+        _memberRepository.Update(member);
     }
 }

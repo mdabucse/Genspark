@@ -2,7 +2,6 @@ using LMS.Context.DbContextFolder;
 using LMS.Interfaces.Repositories;
 using LMS.Interfaces.Services;
 using LMS.Models.Entities;
-using Microsoft.EntityFrameworkCore;
 using LMS.Exceptions.BorrowingExceptions;
 using LMS.Exceptions.MemberExceptions;
 using LMS.Exceptions.BookExceptions;
@@ -43,7 +42,7 @@ public class BorrowingService : IBorrowingService
         try
         {
             Member? member =
-                _memberRepository.GetMemberById(memberId);
+                _memberRepository.GetById(memberId);
 
             if (member == null)
             {
@@ -56,7 +55,8 @@ public class BorrowingService : IBorrowingService
             }
 
             decimal pendingFine =
-                _borrowingRepository.GetPendingFineAmount(memberId);
+                _borrowingRepository
+                .GetPendingFineAmount(memberId);
 
             if (pendingFine > 500)
             {
@@ -64,7 +64,8 @@ public class BorrowingService : IBorrowingService
             }
 
             int activeBorrowCount =
-                _borrowingRepository.GetActiveBorrowCount(memberId);
+                _borrowingRepository
+                .GetActiveBorrowCount(memberId);
 
             int maxLimit =
                 member.Membershiptype.Maxborrowlimit;
@@ -75,7 +76,8 @@ public class BorrowingService : IBorrowingService
             }
 
             bool alreadyBorrowed =
-                _borrowingRepository.HasActiveBorrowing(
+                _borrowingRepository
+                .HasActiveBorrowing(
                     memberId,
                     bookId);
 
@@ -85,7 +87,8 @@ public class BorrowingService : IBorrowingService
             }
 
             Bookcopy? copy =
-                _borrowingRepository.GetAvailableBookCopy(bookId);
+                _borrowingRepository
+                .GetAvailableBookCopy(bookId);
 
             if (copy == null)
             {
@@ -105,13 +108,11 @@ public class BorrowingService : IBorrowingService
                 Fineamount = 0
             };
 
-            _borrowingRepository.AddBorrowing(borrowing);
+            _borrowingRepository.Add(borrowing);
 
             copy.Isavailable = false;
 
             _borrowingRepository.UpdateBookCopy(copy);
-
-            _context.SaveChanges();
 
             transaction.Commit();
         }

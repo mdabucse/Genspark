@@ -5,13 +5,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LMS.DAL.Repositories;
 
-public class BorrowingRepository : IBorrowingRepository
+public class BorrowingRepository
+    : GenericRepository<Borrowing>,
+      IBorrowingRepository
 {
-    private readonly LibraryDbContext _context;
-
-    public BorrowingRepository(LibraryDbContext context)
+    public BorrowingRepository(
+        LibraryDbContext context)
+        : base(context)
     {
-        _context = context;
+
     }
 
     public Bookcopy? GetAvailableBookCopy(int bookId)
@@ -31,7 +33,9 @@ public class BorrowingRepository : IBorrowingRepository
                             b.Isreturned == false);
     }
 
-    public bool HasActiveBorrowing(int memberId, int bookId)
+    public bool HasActiveBorrowing(
+        int memberId,
+        int bookId)
     {
         return _context.Borrowings
                        .Include(b => b.Copy)
@@ -41,26 +45,24 @@ public class BorrowingRepository : IBorrowingRepository
                             b.Copy.Bookid == bookId);
     }
 
-    public void AddBorrowing(Borrowing borrowing)
-    {
-        _context.Borrowings.Add(borrowing);
-    }
-
     public void UpdateBookCopy(Bookcopy copy)
     {
         _context.Bookcopies.Update(copy);
+
+        _context.SaveChanges();
     }
 
     public decimal GetPendingFineAmount(int memberId)
-{
-    return _context.Borrowings
-                   .Where(b =>
-                        b.Memberid == memberId &&
-                        b.Fineamount > 0)
-                   .Sum(b => b.Fineamount ?? 0);
-}
+    {
+        return _context.Borrowings
+                       .Where(b =>
+                            b.Memberid == memberId &&
+                            b.Fineamount > 0)
+                       .Sum(b => b.Fineamount ?? 0);
+    }
 
-    public Borrowing? GetBorrowingById(int borrowingId)
+    public Borrowing? GetBorrowingById(
+        int borrowingId)
     {
         return _context.Borrowings
                        .Include(b => b.Copy)
@@ -68,8 +70,11 @@ public class BorrowingRepository : IBorrowingRepository
                             b.Borrowingid == borrowingId);
     }
 
-    public void UpdateBorrowing(Borrowing borrowing)
+    public void UpdateBorrowing(
+        Borrowing borrowing)
     {
         _context.Borrowings.Update(borrowing);
+
+        _context.SaveChanges();
     }
 }
