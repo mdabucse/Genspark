@@ -5,26 +5,17 @@ namespace LMS.FE.Helpers;
 
 public static class MemberHelper
 {
+    // Helper method to add a new member
     public static void AddMember(
         IMemberService memberService)
     {
         try
         {
-            string name =
-                InputHelper.ReadString("Enter Name: ");
-
-            string email =
-                InputHelper.ReadString("Enter Email: ");
-
-            string phone =
-                InputHelper.ReadString("Enter Phone: ");
-
-            string address =
-                InputHelper.ReadString("Enter Address: ");
-
-            int membershipTypeId =
-                InputHelper.ReadInt(
-                    "Enter Membership Type Id: ");
+            string name = InputHelper.ReadString("Enter Name: ");
+            string email = InputHelper.ReadString("Enter Email: ");
+            string phone = InputHelper.ReadString("Enter Phone: ");
+            string address = InputHelper.ReadString("Enter Address: ");
+            int membershipTypeId = InputHelper.ReadInt("Enter Membership Type Id: ");
 
             Member member = new Member
             {
@@ -36,22 +27,20 @@ public static class MemberHelper
             };
 
             memberService.AddMember(member);
-
-            Console.WriteLine(
-                "Member Added Successfully");
+            Console.WriteLine("Member Added Successfully");
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Error: {ex.Message}");
+            Console.ResetColor();
         }
     }
 
-    public static void ViewMembers(
-        IMemberService memberService)
+    // Helper method to view all members
+    public static void ViewMembers(IMemberService memberService)
     {
-        List<Member> members =
-            memberService.GetAllMembers();
-
+        List<Member> members = memberService.GetAllMembers();
         foreach (var member in members)
         {
             Console.WriteLine(
@@ -63,48 +52,52 @@ public static class MemberHelper
         }
     }
 
+    // Helper method to search for a member by email
     public static void SearchMember(
     IMemberService memberService)
-{
-    string email =
-        InputHelper.ReadString(
-            "Enter Email: ");
-
-    Member? member =
-        memberService.SearchMemberByEmail(email);
-
-    if (member == null)
     {
-        Console.WriteLine("Member not found");
+        string email =
+            InputHelper.ReadString(
+                "Enter Email: ");
 
-        return;
-    }
+        Member? member =
+            memberService.SearchMemberByEmail(email);
 
-    Console.WriteLine(
-        $"{member.Memberid} | " +
-        $"{member.Name} | " +
-        $"{member.Email} | " +
-        $"{member.Phone}"
-    );
-}
+        if (member == null)
+        {
+            Console.WriteLine("Member not found");
 
-public static void DeactivateMember(
-    IMemberService memberService)
-{
-    try
-    {
-        int memberId =
-            InputHelper.ReadInt(
-                "Enter Member Id: ");
-
-        memberService.DeactivateMember(memberId);
+            return;
+        }
 
         Console.WriteLine(
-            "Member Deactivated Successfully");
+            $"{member.Memberid} | " +
+            $"{member.Name} | " +
+            $"{member.Email} | " +
+            $"{member.Phone}"
+        );
     }
-    catch (Exception ex)
+
+    // Helper method to search for a member by phone
+    public static void DeactivateMember(
+        IMemberService memberService)
     {
-        Console.WriteLine(ex.Message);
+        try
+        {
+            int memberId =
+                InputHelper.ReadInt(
+                    "Enter Member Id: ");
+
+            memberService.DeactivateMember(memberId);
+
+            Console.WriteLine(
+                "Member Deactivated Successfully");
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Error: {ex.Message}");
+            Console.ResetColor();
+        }
     }
-}
 }

@@ -2,8 +2,7 @@ using LMS.Models.Entities;
 
 namespace LMS.Interfaces.Repositories;
 
-public interface IBookRepository
-    : IGenericRepository<Book>
+public interface IBookRepository: IGenericRepository<Book>
 {
     void AddBookCopy(Bookcopy copy);
 

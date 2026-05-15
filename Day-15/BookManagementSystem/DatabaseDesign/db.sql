@@ -127,3 +127,4 @@ END;
 $$
 LANGUAGE plpgsql;
 
+select * from Borrowing;

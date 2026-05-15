@@ -7,22 +7,23 @@ namespace LMS.BL.Services;
 
 public class BookService : IBookService
 {
-    private readonly IBookRepository _bookRepository;
+    private readonly IBookRepository _bookRepository; 
 
     public BookService(IBookRepository bookRepository)
     {
         _bookRepository = bookRepository;
     }
-
+    
+    // Adding the book
     public void AddBook(Book book)
     {
         _bookRepository.Add(book);
     }
 
+    // Adding the book copies
     public void AddBookCopies(int bookId, int numberOfCopies)
     {
-        Book? book =
-            _bookRepository.GetById(bookId);
+        Book? book = _bookRepository.GetById(bookId);
 
         if (book == null)
         {
@@ -38,15 +39,17 @@ public class BookService : IBookService
                 Isdamaged = false
             };
 
-            _bookRepository.Add(book);
+            _bookRepository.AddBookCopy(copy);
         }
     }
 
+    // Getting all the books
     public List<Book> GetAllBooks()
     {
         return _bookRepository.GetAll();
     }
 
+    // Searching the books by title or author
     public List<Book> SearchBooks(string keyword)
     {
         return _bookRepository.SearchBooks(keyword);

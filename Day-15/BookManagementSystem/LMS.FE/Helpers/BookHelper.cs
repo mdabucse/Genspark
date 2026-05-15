@@ -6,27 +6,18 @@ namespace LMS.FE.Helpers;
 
 public static class BookHelper
 {
-    public static void AddBook(
-        IBookService bookService)
+    // Helper method to add a new book
+    public static void AddBook(IBookService bookService)
     {
         try
         {
-            string title =
-                InputHelper.ReadString("Enter Title: ");
-
-            string author =
-                InputHelper.ReadString("Enter Author: ");
-
-            string isbn =
-                InputHelper.ReadString("Enter ISBN: ");
-
-            int publishedYear =
-                InputHelper.ReadInt(
-                    "Enter Published Year: ");
+            string title = InputHelper.ReadString("Enter Title: ");
+            string author = InputHelper.ReadString("Enter Author: ");
+            string isbn = InputHelper.ReadString("Enter ISBN: ");
+            int publishedYear = InputHelper.ReadInt("Enter Published Year: ");
 
             int categoryId =
-                InputHelper.ReadInt(
-                    "Enter Category Id: ");
+                InputHelper.ReadInt("Enter Category Id: ");
 
             Book book = new Book
             {
@@ -44,10 +35,13 @@ public static class BookHelper
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Error: {ex.Message}");
+            Console.ResetColor();
         }
     }
 
+    // Helper method to view all books with their available copy count
     public static void ViewBooks(
         IBookService bookService,
         IBookRepository bookRepository)
@@ -69,7 +63,8 @@ public static class BookHelper
             );
         }
     }
-
+    
+    // Helper method to search for books by keyword and display their available copy count
     public static void SearchBooks(
         IBookService bookService,
         IBookRepository bookRepository)
@@ -96,6 +91,7 @@ public static class BookHelper
         }
     }
 
+    // Helper method to add book copies
     public static void AddBookCopies(
         IBookService bookService)
     {
@@ -118,7 +114,9 @@ public static class BookHelper
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Error: {ex.Message}");
+            Console.ResetColor();
         }
     }
 }

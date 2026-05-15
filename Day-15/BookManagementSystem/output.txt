@@ -1,0 +1,445 @@
+mohamedabubakkars@FVFG908RQ05F-mohamedabubakkars LMS.FE % dotnet run
+
+===== LMS =====
+1. Admin
+2. Customer
+3. Exit
+
+Choose Role: 1
+
+===== ADMIN MENU =====
+1. Add Member
+2. View Members
+3. Search Member
+4. Deactivate Member
+5. Add Book
+6. View Books
+7. Search Books
+8. Add Book Copies
+9. Reports
+10. Back
+
+Enter Choice: 1
+Enter Name: Abu
+Enter Email: abu@gmail.com
+Enter Phone: 987654322
+Enter Address: Chennai
+Enter Membership Type Id: 1
+Member Added Successfully
+
+===== ADMIN MENU =====
+1. Add Member
+2. View Members
+3. Search Member
+4. Deactivate Member
+5. Add Book
+6. View Books
+7. Search Books
+8. Add Book Copies
+9. Reports
+10. Back
+
+Enter Choice: 2
+1 | Abu | mdabucse@gmail.com | 1234567890
+2 | Thahi | Thahi@gmail.com | 0987654321
+3 | TestMember | test@mail.com | 9999999999
+4 | Alice Basic | alice@test.com | 9111111111
+7 | Abu | Abu123@gmail.com | 123212341
+8 | Abu | abu@gmail.com | 987654322
+
+===== ADMIN MENU =====
+1. Add Member
+2. View Members
+3. Search Member
+4. Deactivate Member
+5. Add Book
+6. View Books
+7. Search Books
+8. Add Book Copies
+9. Reports
+10. Back
+
+Enter Choice: 3
+Enter Email: abu@gmail.com
+8 | Abu | abu@gmail.com | 987654322
+
+===== ADMIN MENU =====
+1. Add Member
+2. View Members
+3. Search Member
+4. Deactivate Member
+5. Add Book
+6. View Books
+7. Search Books
+8. Add Book Copies
+9. Reports
+10. Back
+
+Enter Choice: unknown@gmail.com
+Invalid Choice
+
+===== ADMIN MENU =====
+1. Add Member
+2. View Members
+3. Search Member
+4. Deactivate Member
+5. Add Book
+6. View Books
+7. Search Books
+8. Add Book Copies
+9. Reports
+10. Back
+
+Enter Choice: 4
+Enter Member Id: 3
+Member Deactivated Successfully
+
+===== ADMIN MENU =====
+1. Add Member
+2. View Members
+3. Search Member
+4. Deactivate Member
+5. Add Book
+6. View Books
+7. Search Books
+8. Add Book Copies
+9. Reports
+10. Back
+
+Enter Choice: 5
+Enter Title: Clean Code 1
+Enter Author: Robert Martin
+Enter ISBN: 123456
+Enter Published Year: 2008
+Enter Category Id: 1
+Book Added Successfully
+
+===== ADMIN MENU =====
+1. Add Member
+2. View Members
+3. Search Member
+4. Deactivate Member
+5. Add Book
+6. View Books
+7. Search Books
+8. Add Book Copies
+9. Reports
+10. Back
+
+Enter Choice: 6
+1 | Abu | AbuAuth | Available Copies: 7
+2 | The Clean Coder | Robert Martin | Available Copies: 1
+3 | Clean Code 1 | Robert Martin | Available Copies: 0
+
+===== ADMIN MENU =====
+1. Add Member
+2. View Members
+3. Search Member
+4. Deactivate Member
+5. Add Book
+6. View Books
+7. Search Books
+8. Add Book Copies
+9. Reports
+10. Back
+
+Enter Choice: 8
+Enter Book Id: 3
+Enter Number Of Copies: 5
+Book Copies Added Successfully
+
+===== ADMIN MENU =====
+1. Add Member
+2. View Members
+3. Search Member
+4. Deactivate Member
+5. Add Book
+6. View Books
+7. Search Books
+8. Add Book Copies
+9. Reports
+10. Back
+
+Enter Choice: 7 
+Enter Keyword: The
+2 | The Clean Coder | Robert Martin | Available Copies: 1
+
+===== ADMIN MENU =====
+1. Add Member
+2. View Members
+3. Search Member
+4. Deactivate Member
+5. Add Book
+6. View Books
+7. Search Books
+8. Add Book Copies
+9. Reports
+10. Back
+
+Enter Choice: 9
+
+===== REPORTS MENU =====
+1. Overdue Books
+2. Members With Pending Fine
+3. Most Borrowed Books
+4. Available Books
+5. Member Borrowing History
+6. Back
+
+Enter Choice: 1
+
+===== REPORTS MENU =====
+1. Overdue Books
+2. Members With Pending Fine
+3. Most Borrowed Books
+4. Available Books
+5. Member Borrowing History
+6. Back
+
+Enter Choice: 2
+
+===== REPORTS MENU =====
+1. Overdue Books
+2. Members With Pending Fine
+3. Most Borrowed Books
+4. Available Books
+5. Member Borrowing History
+6. Back
+
+Enter Choice: 6
+
+===== ADMIN MENU =====
+1. Add Member
+2. View Members
+3. Search Member
+4. Deactivate Member
+5. Add Book
+6. View Books
+7. Search Books
+8. Add Book Copies
+9. Reports
+10. Back
+
+Enter Choice: 10
+
+===== LMS =====
+1. Admin
+2. Customer
+3. Exit
+
+Choose Role: 2
+
+===== CUSTOMER MENU =====
+1. Search Books
+2. View Available Books
+3. Borrow Book
+4. Return Book
+5. View My Fine
+6. Pay Fine
+7. View Borrowing History
+8. Back
+
+Enter Choice: 1
+Enter Keyword: clean
+2 | The Clean Coder | Robert Martin | Available Copies: 1
+3 | Clean Code 1 | Robert Martin | Available Copies: 5
+
+===== CUSTOMER MENU =====
+1. Search Books
+2. View Available Books
+3. Borrow Book
+4. Return Book
+5. View My Fine
+6. Pay Fine
+7. View Borrowing History
+8. Back
+
+Enter Choice: 2
+1 | Abu
+2 | The Clean Coder
+3 | Clean Code 1
+
+===== CUSTOMER MENU =====
+1. Search Books
+2. View Available Books
+3. Borrow Book
+4. Return Book
+5. View My Fine
+6. Pay Fine
+7. View Borrowing History
+8. Back
+
+Enter Choice: 3
+Enter Member Id: 8
+Enter Book Id: 3
+Book Borrowed Successfully
+
+===== CUSTOMER MENU =====
+1. Search Books
+2. View Available Books
+3. Borrow Book
+4. Return Book
+5. View My Fine
+6. Pay Fine
+7. View Borrowing History
+8. Back
+
+Enter Choice: 4
+Enter Member Id: 8
+
+----- Active Borrowings -----
+ID     Book Title                     Borrow Date            Due Date              
+----------------------------------------------------------------------------------
+5      Clean Code 1                   15/05/2026 2:14:36 PM  22/05/2026 2:14:36 PM 
+----------------------------------------------------------------------------------
+
+Enter Borrowing Id to Return: 5
+Book Returned Successfully
+
+===== CUSTOMER MENU =====
+1. Search Books
+2. View Available Books
+3. Borrow Book
+4. Return Book
+5. View My Fine
+6. Pay Fine
+7. View Borrowing History
+8. Back
+
+Enter Choice: 5
+Enter Member Id: 8
+Total Pending Fine: ₹0
+
+===== CUSTOMER MENU =====
+1. Search Books
+2. View Available Books
+3. Borrow Book
+4. Return Book
+5. View My Fine
+6. Pay Fine
+7. View Borrowing History
+8. Back
+
+Enter Choice: 8
+
+===== LMS =====
+1. Admin
+2. Customer
+3. Exit
+
+Choose Role: 1
+
+===== ADMIN MENU =====
+1. Add Member
+2. View Members
+3. Search Member
+4. Deactivate Member
+5. Add Book
+6. View Books
+7. Search Books
+8. Add Book Copies
+9. Reports
+10. Back
+
+Enter Choice: 9
+
+===== REPORTS MENU =====
+1. Overdue Books
+2. Members With Pending Fine
+3. Most Borrowed Books
+4. Available Books
+5. Member Borrowing History
+6. Back
+
+Enter Choice: 1
+
+===== REPORTS MENU =====
+1. Overdue Books
+2. Members With Pending Fine
+3. Most Borrowed Books
+4. Available Books
+5. Member Borrowing History
+6. Back
+
+Enter Choice: 5
+Enter Member Id: 8
+5 | Clean Code 1 | 15/05/2026 2:14:36 PM | True
+
+===== REPORTS MENU =====
+1. Overdue Books
+2. Members With Pending Fine
+3. Most Borrowed Books
+4. Available Books
+5. Member Borrowing History
+6. Back
+
+Enter Choice: 6
+
+===== ADMIN MENU =====
+1. Add Member
+2. View Members
+3. Search Member
+4. Deactivate Member
+5. Add Book
+6. View Books
+7. Search Books
+8. Add Book Copies
+9. Reports
+10. Back
+
+Enter Choice: 10
+
+===== LMS =====
+1. Admin
+2. Customer
+3. Exit
+
+Choose Role: 2
+
+===== CUSTOMER MENU =====
+1. Search Books
+2. View Available Books
+3. Borrow Book
+4. Return Book
+5. View My Fine
+6. Pay Fine
+7. View Borrowing History
+8. Back
+
+Enter Choice: 6
+Enter Member Id: 8
+No active borrowings found for this member.
+
+===== CUSTOMER MENU =====
+1. Search Books
+2. View Available Books
+3. Borrow Book
+4. Return Book
+5. View My Fine
+6. Pay Fine
+7. View Borrowing History
+8. Back
+
+Enter Choice: 7
+Enter Member Id: 8
+5 | Clean Code 1 | 15/05/2026 2:14:36 PM | True
+
+===== CUSTOMER MENU =====
+1. Search Books
+2. View Available Books
+3. Borrow Book
+4. Return Book
+5. View My Fine
+6. Pay Fine
+7. View Borrowing History
+8. Back
+
+Enter Choice: 8
+
+===== LMS =====
+1. Admin
+2. Customer
+3. Exit
+
+Choose Role: 3
+mohamedabubakkars@FVFG908RQ05F-mohamedabubakkars LMS.FE %

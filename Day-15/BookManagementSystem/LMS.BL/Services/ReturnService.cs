@@ -12,15 +12,13 @@ public class ReturnService : IReturnService
 
     private readonly LibraryDbContext _context;
 
-    public ReturnService(
-        IBorrowingRepository borrowingRepository,
-        LibraryDbContext context)
+    public ReturnService(IBorrowingRepository borrowingRepository,LibraryDbContext context)
     {
         _borrowingRepository = borrowingRepository;
-
         _context = context;
     }
 
+    // Returning the book
     public void ReturnBook(int borrowingId)
     {
         using var transaction =
@@ -28,9 +26,7 @@ public class ReturnService : IReturnService
 
         try
         {
-            Borrowing? borrowing =
-                _borrowingRepository
-                .GetBorrowingById(borrowingId);
+            Borrowing? borrowing = _borrowingRepository.GetBorrowingById(borrowingId);
 
             if (borrowing == null)
             {
@@ -42,15 +38,15 @@ public class ReturnService : IReturnService
                 throw new AlreadyReturnedException();
             }
 
-            DateTime dueDate =
-                borrowing.Duedate;
+            if (borrowing.Copy == null)
+            {
+                throw new InvalidOperationException("Book copy information could not be loaded for this borrowing.");
+            }
 
-            DateTime returnDate =
-                DateTime.Now;
+            DateTime dueDate = borrowing.Duedate;
+            DateTime returnDate = DateTime.Now;
 
-            int delayedDays =
-                (returnDate - dueDate).Days;
-
+            int delayedDays = (returnDate - dueDate).Days;
             decimal fine = 0;
 
             if (delayedDays > 0)
@@ -59,24 +55,16 @@ public class ReturnService : IReturnService
             }
 
             borrowing.Returndate = returnDate;
-
             borrowing.Isreturned = true;
-
             borrowing.Fineamount = fine;
-
-            _borrowingRepository.Update(borrowing);
-
+            _borrowingRepository.UpdateBorrowing(borrowing);
             borrowing.Copy.Isavailable = true;
-
-            _borrowingRepository.UpdateBookCopy(
-                borrowing.Copy);
-
+            _borrowingRepository.UpdateBookCopy(borrowing.Copy);
             transaction.Commit();
         }
         catch
         {
             transaction.Rollback();
-
             throw;
         }
     }

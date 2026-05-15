@@ -22,11 +22,15 @@ public static class CustomerMenu
         Console.WriteLine(
             "5. View My Fine");
 
+        // BUG FIX: Added Pay Fine option — was missing despite being a core requirement
         Console.WriteLine(
-            "6. View Borrowing History");
+            "6. Pay Fine");
 
         Console.WriteLine(
-            "7. Back");
+            "7. View Borrowing History");
+
+        Console.WriteLine(
+            "8. Back");
 
         Console.Write(
             "\nEnter Choice: ");

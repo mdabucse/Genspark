@@ -4,12 +4,10 @@ namespace LMS.FE.Helpers;
 
 public static class ReportHelper
 {
-    public static void ShowOverdueBooks(
-        IReportService reportService)
+    // Helper method to show overdue books
+    public static void ShowOverdueBooks(IReportService reportService)
     {
-        var borrowings =
-            reportService.GetOverdueBooks();
-
+        var borrowings = reportService.GetOverdueBooks();
         foreach (var borrowing in borrowings)
         {
             Console.WriteLine(
@@ -21,11 +19,10 @@ public static class ReportHelper
         }
     }
 
-    public static void ShowMembersWithPendingFine(
-        IReportService reportService)
+    // Helper method to show members with pending fines
+    public static void ShowMembersWithPendingFine(IReportService reportService)
     {
-        var members =
-            reportService.GetMembersWithPendingFine();
+        var members = reportService.GetMembersWithPendingFine();
 
         foreach (var member in members)
         {
@@ -36,11 +33,10 @@ public static class ReportHelper
         }
     }
 
-    public static void ShowMostBorrowedBooks(
-        IReportService reportService)
+    // Helper method to show the most borrowed books
+    public static void ShowMostBorrowedBooks(IReportService reportService)
     {
-        var books =
-            reportService.GetMostBorrowedBooks();
+        var books = reportService.GetMostBorrowedBooks();
 
         foreach (var item in books)
         {
@@ -48,11 +44,10 @@ public static class ReportHelper
         }
     }
 
-    public static void ShowAvailableBooks(
-        IReportService reportService)
+    // Helper method to show available books
+    public static void ShowAvailableBooks(IReportService reportService)
     {
-        var books =
-            reportService.GetAvailableBooks();
+        var books = reportService.GetAvailableBooks();
 
         foreach (var book in books)
         {
@@ -63,16 +58,12 @@ public static class ReportHelper
         }
     }
 
-    public static void ShowMemberBorrowingHistory(
-        IReportService reportService)
+    // Helper method to show borrowing history for a specific member
+    public static void ShowMemberBorrowingHistory(IReportService reportService)
     {
-        int memberId =
-            InputHelper.ReadInt(
-                "Enter Member Id: ");
+        int memberId = InputHelper.ReadInt("Enter Member Id: ");
 
-        var borrowings =
-            reportService
-            .GetMemberBorrowingHistory(memberId);
+        var borrowings =reportService.GetMemberBorrowingHistory(memberId);
 
         foreach (var borrowing in borrowings)
         {

@@ -65,11 +65,8 @@ public partial class LibraryDbContext : DbContext
         modelBuilder.Entity<Bookcategory>(entity =>
         {
             entity.HasKey(e => e.Categoryid).HasName("bookcategory_pkey");
-
             entity.ToTable("bookcategory");
-
             entity.HasIndex(e => e.Categoryname, "bookcategory_categoryname_key").IsUnique();
-
             entity.Property(e => e.Categoryid).HasColumnName("categoryid");
             entity.Property(e => e.Categoryname)
                 .HasMaxLength(100)
@@ -79,9 +76,7 @@ public partial class LibraryDbContext : DbContext
         modelBuilder.Entity<Bookcopy>(entity =>
         {
             entity.HasKey(e => e.Copyid).HasName("bookcopy_pkey");
-
             entity.ToTable("bookcopy");
-
             entity.Property(e => e.Copyid).HasColumnName("copyid");
             entity.Property(e => e.Bookid).HasColumnName("bookid");
             entity.Property(e => e.Isavailable)
@@ -90,7 +85,6 @@ public partial class LibraryDbContext : DbContext
             entity.Property(e => e.Isdamaged)
                 .HasDefaultValue(false)
                 .HasColumnName("isdamaged");
-
             entity.HasOne(d => d.Book).WithMany(p => p.Bookcopies)
                 .HasForeignKey(d => d.Bookid)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -100,26 +94,32 @@ public partial class LibraryDbContext : DbContext
         modelBuilder.Entity<Borrowing>(entity =>
         {
             entity.HasKey(e => e.Borrowingid).HasName("borrowing_pkey");
-
             entity.ToTable("borrowing");
 
             entity.Property(e => e.Borrowingid).HasColumnName("borrowingid");
+            
             entity.Property(e => e.Borrowdate)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("borrowdate");
+
             entity.Property(e => e.Copyid).HasColumnName("copyid");
+
             entity.Property(e => e.Duedate)
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("duedate");
+
             entity.Property(e => e.Fineamount)
                 .HasPrecision(10, 2)
                 .HasDefaultValue(0m)
                 .HasColumnName("fineamount");
+
             entity.Property(e => e.Isreturned)
                 .HasDefaultValue(false)
                 .HasColumnName("isreturned");
+
             entity.Property(e => e.Memberid).HasColumnName("memberid");
+
             entity.Property(e => e.Returndate)
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("returndate");
@@ -142,10 +142,13 @@ public partial class LibraryDbContext : DbContext
             entity.ToTable("finepayment");
 
             entity.Property(e => e.Paymentid).HasColumnName("paymentid");
+
             entity.Property(e => e.Amountpaid)
                 .HasPrecision(10, 2)
                 .HasColumnName("amountpaid");
+
             entity.Property(e => e.Borrowingid).HasColumnName("borrowingid");
+
             entity.Property(e => e.Paiddate)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")
@@ -168,21 +171,28 @@ public partial class LibraryDbContext : DbContext
             entity.HasIndex(e => e.Phone, "member_phone_key").IsUnique();
 
             entity.Property(e => e.Memberid).HasColumnName("memberid");
+
             entity.Property(e => e.Address).HasColumnName("address");
+
             entity.Property(e => e.Createdat)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("createdat");
+
             entity.Property(e => e.Email)
                 .HasMaxLength(100)
                 .HasColumnName("email");
+
             entity.Property(e => e.Isactive)
                 .HasDefaultValue(true)
                 .HasColumnName("isactive");
+
             entity.Property(e => e.Membershiptypeid).HasColumnName("membershiptypeid");
+
             entity.Property(e => e.Name)
                 .HasMaxLength(100)
                 .HasColumnName("name");
+
             entity.Property(e => e.Phone)
                 .HasMaxLength(15)
                 .HasColumnName("phone");
@@ -202,8 +212,11 @@ public partial class LibraryDbContext : DbContext
             entity.HasIndex(e => e.Typename, "membershiptype_typename_key").IsUnique();
 
             entity.Property(e => e.Membershiptypeid).HasColumnName("membershiptypeid");
+
             entity.Property(e => e.Maxborrowdays).HasColumnName("maxborrowdays");
+
             entity.Property(e => e.Maxborrowlimit).HasColumnName("maxborrowlimit");
+            
             entity.Property(e => e.Typename)
                 .HasMaxLength(50)
                 .HasColumnName("typename");

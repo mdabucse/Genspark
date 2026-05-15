@@ -1,10 +1,9 @@
 namespace LMS.Exceptions.MemberExceptions;
 
-public class DuplicateEmailException : Exception
+public class DuplicatePhoneException : Exception
 {
     // Constructor to initialize the exception with a default message
-    public DuplicateEmailException(): base("Email already exists")
+    public DuplicatePhoneException(): base("Phone number already exists")
     {
-
     }
 }
