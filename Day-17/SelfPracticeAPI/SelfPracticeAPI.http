@@ -1,0 +1,6 @@
+@SelfPracticeAPI_HostAddress = http://localhost:5279
+
+GET {{SelfPracticeAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
