@@ -1,6 +1,12 @@
 # Concepts Learned from ASP.NET Core Web API 
 # 1. ASP.NET Core Web API
 
+### Loose Coupling
+![alt text](<Tight Coupling.png>)
+
+### Tight Coupling
+![alt text](<Tight Coupling.png>)
+
 ## Topics Learned
 
 - What is Web API
