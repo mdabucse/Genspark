@@ -1,0 +1,6 @@
+@PubAndSub_HostAddress = http://localhost:5188
+
+GET {{PubAndSub_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
