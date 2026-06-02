@@ -1,0 +1,14 @@
+<section>
+    <h1>Login</h1>
+    <form (submit)="handleLoginClick()">
+        <div>
+            <label for="username">Username:</label>
+            <input type="text" id="username" [(ngModel)]="loginmodel().Email" name="email" required>
+        </div>
+        <div>
+            <label for="password">Password:</label>
+            <input type="password" id="password" [(ngModel)]="loginmodel().Password" name="password" required>
+        </div>
+        <button type="submit">Login</button>
+    </form>
+</section>
