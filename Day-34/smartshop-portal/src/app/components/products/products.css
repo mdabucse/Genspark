@@ -1,0 +1,50 @@
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-width: 640px;
+}
+
+.tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.tile-leading {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.tile-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.tile-title {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tile-subtitle {
+  font-size: 0.9em;
+  color: #666;
+  margin-top: 2px;
+}
+
+.tile-trailing {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.error {
+  color: #b00020;
+}

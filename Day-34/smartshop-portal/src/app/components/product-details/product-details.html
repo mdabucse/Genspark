@@ -1,0 +1,23 @@
+<div *ngIf="errorMessage()" class="error">
+  {{ errorMessage() }}
+</div>
+
+<div *ngIf="!errorMessage() && !product()">
+  Loading product details...
+</div>
+
+<div *ngIf="product() as p">
+  <h2>{{ p.title }}</h2>
+
+  <img [src]="p.thumbnail" alt="{{ p.title }}" width="240">
+
+  <p>{{ p.description }}</p>
+
+  <p><strong>Category:</strong> {{ p.category }}</p>
+  <p><strong>Price:</strong> ₹{{ p.price }}</p>
+  <p><strong>Rating:</strong> {{ p.rating }}</p>
+  <p><strong>Brand:</strong> {{ p.brand }}</p>
+  <p><strong>Stock:</strong> {{ p.stock }}</p>
+
+  <button (click)="goBack()">Back to products</button>
+</div>
