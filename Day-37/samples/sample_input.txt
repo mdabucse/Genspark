@@ -1,0 +1,23 @@
+Subject: New E-Commerce Portal for Artisan Marketplace
+
+Hi Team,
+
+We need a new online marketplace where local artisans can list handmade products and customers can browse, purchase, and track orders. This should replace our current manual order process handled over WhatsApp and spreadsheets.
+
+Key needs:
+- Vendor registration with profile, product catalog, and inventory counts
+- Customer accounts with saved addresses and order history
+- Shopping cart, checkout, and online payment (Stripe preferred)
+- Admin dashboard to approve vendors, manage categories, and handle disputes
+- Email notifications for order confirmation, shipping updates, and refunds
+- Mobile-friendly website; native mobile apps are nice-to-have for phase 2
+
+We expect around 200 vendors and 5,000 customers in the first year. Peak traffic during holiday seasons could be 3x normal. Data must be stored securely and we need GDPR compliance because we have EU customers.
+
+Timeline is aggressive — we'd like an MVP in 3 months. Budget is flexible but we want transparency on ongoing hosting costs.
+
+Please let us know what else you need from us.
+
+Thanks,
+Sarah Chen
+Product Director, CraftBridge
