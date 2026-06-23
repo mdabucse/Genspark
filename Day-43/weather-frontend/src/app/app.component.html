@@ -1,0 +1,221 @@
+<div class="app-container" [ngClass]="getWeatherClass()">
+  <!-- Background decorative elements for glassmorphic depth -->
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  
+  <div class="portal-wrapper">
+    <!-- Header Section -->
+    <header class="app-header">
+      <div class="brand">
+        <svg viewBox="0 0 24 24" class="brand-logo" width="32" height="32">
+          <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 2v20M2 12h20M12 7l5 5-5 5M12 12l-5-5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <h1>AeroWeather</h1>
+      </div>
+      
+      <!-- API Health Badge -->
+      <div class="api-health-badge" [ngClass]="apiHealth" (click)="checkApiHealth()" title="Click to refresh status">
+        <span class="status-indicator"></span>
+        <span class="status-text">
+          <ng-container *ngIf="apiHealth === 'healthy'">API ONLINE</ng-container>
+          <ng-container *ngIf="apiHealth === 'unhealthy'">API OFFLINE</ng-container>
+          <ng-container *ngIf="apiHealth === 'unknown'">CHECKING API...</ng-container>
+        </span>
+      </div>
+    </header>
+
+    <!-- Search Section -->
+    <section class="search-section">
+      <form (submit)="onSearchSubmit()" class="search-form">
+        <input 
+          type="text" 
+          name="citySearch" 
+          [(ngModel)]="cityQuery" 
+          placeholder="Search city (e.g. Tokyo, London, Sydney...)" 
+          class="search-input" 
+          required 
+          #cityInput
+        />
+        <button type="submit" class="search-btn" [disabled]="loading">
+          <span *ngIf="!loading">Search</span>
+          <span *ngIf="loading" class="spinner"></span>
+        </button>
+      </form>
+
+      <!-- Quick select cities tags -->
+      <div class="quick-cities">
+        <button 
+          *ngFor="let city of popularCities" 
+          (click)="selectCity(city)" 
+          class="city-tag"
+          [class.active]="weatherData?.city?.toLowerCase() === city.toLowerCase()"
+        >
+          {{ city }}
+        </button>
+      </div>
+    </section>
+
+    <!-- Loading State -->
+    <div class="loading-overlay" *ngIf="loading">
+      <div class="spinner-large"></div>
+      <p>Fetching weather data...</p>
+    </div>
+
+    <!-- Error State -->
+    <div class="error-container glass-panel" *ngIf="errorMessage && !loading">
+      <svg viewBox="0 0 24 24" class="error-icon" width="48" height="48">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="#e74c3c"/>
+      </svg>
+      <h3>Unable to Retrieve Weather</h3>
+      <p>{{ errorMessage }}</p>
+      <button class="retry-btn" (click)="fetchWeather(cityQuery || 'New York')">Retry Connection</button>
+    </div>
+
+    <!-- Main Weather Content -->
+    <main class="weather-content" *ngIf="weatherData && !loading && !errorMessage">
+      <div class="dashboard-grid">
+        
+        <!-- Left Panel: Current Weather -->
+        <section class="current-weather-panel glass-panel">
+          <div class="panel-header">
+            <div class="location-info">
+              <h2>{{ weatherData.city }}</h2>
+              <span class="country-name">{{ weatherData.country }}</span>
+            </div>
+            
+            <!-- Temperature Unit Switcher -->
+            <button class="unit-toggle" (click)="toggleTempUnit()" title="Toggle Temperature Unit">
+              <span [class.active]="tempUnit === 'C'">°C</span>
+              <span class="toggle-divider">/</span>
+              <span [class.active]="tempUnit === 'F'">°F</span>
+            </button>
+          </div>
+
+          <div class="current-weather-details">
+            <!-- Big Temp display -->
+            <div class="temp-display">
+              <span class="temp-val" *ngIf="tempUnit === 'C'">{{ weatherData.current.tempC }}°</span>
+              <span class="temp-val" *ngIf="tempUnit === 'F'">{{ weatherData.current.tempF }}°</span>
+            </div>
+
+            <!-- Big Icon -->
+            <div class="weather-icon-large">
+              <!-- Render matching SVG based on condition -->
+              <ng-container [ngSwitch]="weatherData.current.condition">
+                <svg *ngSwitchCase="'Sunny'" viewBox="0 0 24 24" class="weather-svg sunny">
+                  <circle cx="12" cy="12" r="5" fill="#f39c12"/>
+                  <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="#f39c12" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <svg *ngSwitchCase="'Cloudy'" viewBox="0 0 24 24" class="weather-svg cloudy">
+                  <path d="M19.36 15.37A4.47 4.47 0 0 0 20 13.5a4.5 4.5 0 0 0-7.82-3.1 6 6 0 0 0-10.83 3.6A4.5 4.5 0 0 0 5.5 22h12.83a4.5 4.5 0 0 0 1.03-6.63z" fill="#bdc3c7"/>
+                </svg>
+                <svg *ngSwitchCase="'Rainy'" viewBox="0 0 24 24" class="weather-svg rainy">
+                  <path d="M19.36 15.37A4.47 4.47 0 0 0 20 13.5a4.5 4.5 0 0 0-7.82-3.1 6 6 0 0 0-10.83 3.6A4.5 4.5 0 0 0 5.5 22h12.83a4.5 4.5 0 0 0 1.03-6.63z" fill="#7f8c8d"/>
+                  <path d="M9 19l-1 3M13 19l-1 3M17 19l-1 3" stroke="#3498db" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <svg *ngSwitchCase="'Snowy'" viewBox="0 0 24 24" class="weather-svg snowy">
+                  <path d="M19.36 15.37A4.47 4.47 0 0 0 20 13.5a4.5 4.5 0 0 0-7.82-3.1 6 6 0 0 0-10.83 3.6A4.5 4.5 0 0 0 5.5 22h12.83a4.5 4.5 0 0 0 1.03-6.63z" fill="#ecf0f1"/>
+                  <path d="M8 20h.01M12 20h.01M16 20h.01M10 22h.01M14 22h.01" stroke="#3498db" stroke-width="3" stroke-linecap="round"/>
+                </svg>
+                <svg *ngSwitchCase="'Stormy'" viewBox="0 0 24 24" class="weather-svg stormy">
+                  <path d="M19.36 15.37A4.47 4.47 0 0 0 20 13.5a4.5 4.5 0 0 0-7.82-3.1 6 6 0 0 0-10.83 3.6A4.5 4.5 0 0 0 5.5 22h12.83a4.5 4.5 0 0 0 1.03-6.63z" fill="#34495e"/>
+                  <path d="M13 18l-3 3h3l-2 3" stroke="#f1c40f" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+                </svg>
+                <svg *ngSwitchCase="'Windy'" viewBox="0 0 24 24" class="weather-svg windy">
+                  <path d="M2 7h15a3 3 0 0 1 0 6h-2M2 12h18a3 3 0 0 0 0-6M2 17h12a3 3 0 0 0 0-6" fill="none" stroke="#ecf0f1" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <!-- Default -->
+                <svg *ngSwitchDefault viewBox="0 0 24 24" class="weather-svg default-cloud">
+                  <path d="M19.36 15.37A4.47 4.47 0 0 0 20 13.5a4.5 4.5 0 0 0-7.82-3.1 6 6 0 0 0-10.83 3.6A4.5 4.5 0 0 0 5.5 22h12.83a4.5 4.5 0 0 0 1.03-6.63z" fill="#bdc3c7"/>
+                </svg>
+              </ng-container>
+            </div>
+          </div>
+
+          <div class="condition-wrapper">
+            <h3 class="condition-title">{{ weatherData.current.condition }}</h3>
+            <p class="condition-desc">{{ weatherData.current.description }}</p>
+          </div>
+
+          <!-- Secondary Metrics Grid -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <span class="metric-label">FEELS LIKE</span>
+              <span class="metric-val" *ngIf="tempUnit === 'C'">{{ weatherData.current.feelsLikeC }}°C</span>
+              <span class="metric-val" *ngIf="tempUnit === 'F'">{{ weatherData.current.feelsLikeF }}°F</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">HUMIDITY</span>
+              <span class="metric-val">{{ weatherData.current.humidity }}%</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">WIND</span>
+              <span class="metric-val">{{ weatherData.current.windKmh }} km/h</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right Panel: 5-Day Forecast -->
+        <section class="forecast-panel">
+          <h3>5-Day Forecast</h3>
+          <div class="forecast-list">
+            <div class="forecast-card glass-panel" *ngFor="let day of weatherData.forecast">
+              <div class="forecast-date">
+                <span class="day-name">{{ day.dayOfWeek }}</span>
+                <span class="date-val">{{ day.date | date:'MMM d' }}</span>
+              </div>
+              
+              <!-- Mini Icon -->
+              <div class="forecast-icon">
+                <ng-container [ngSwitch]="day.condition">
+                  <svg *ngSwitchCase="'Sunny'" viewBox="0 0 24 24" class="weather-svg-mini">
+                    <circle cx="12" cy="12" r="5" fill="#f39c12"/>
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2" stroke="#f39c12" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  <svg *ngSwitchCase="'Cloudy'" viewBox="0 0 24 24" class="weather-svg-mini">
+                    <path d="M19.36 15.37A4.47 4.47 0 0 0 20 13.5a4.5 4.5 0 0 0-7.82-3.1 6 6 0 0 0-10.83 3.6A4.5 4.5 0 0 0 5.5 22h12.83a4.5 4.5 0 0 0 1.03-6.63z" fill="#bdc3c7"/>
+                  </svg>
+                  <svg *ngSwitchCase="'Rainy'" viewBox="0 0 24 24" class="weather-svg-mini">
+                    <path d="M19.36 15.37A4.47 4.47 0 0 0 20 13.5a4.5 4.5 0 0 0-7.82-3.1 6 6 0 0 0-10.83 3.6A4.5 4.5 0 0 0 5.5 22h12.83a4.5 4.5 0 0 0 1.03-6.63z" fill="#7f8c8d"/>
+                    <path d="M9 19l-1 2M13 19l-1 2M17 19l-1 2" stroke="#3498db" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  <svg *ngSwitchCase="'Snowy'" viewBox="0 0 24 24" class="weather-svg-mini">
+                    <path d="M19.36 15.37A4.47 4.47 0 0 0 20 13.5a4.5 4.5 0 0 0-7.82-3.1 6 6 0 0 0-10.83 3.6A4.5 4.5 0 0 0 5.5 22h12.83a4.5 4.5 0 0 0 1.03-6.63z" fill="#ecf0f1"/>
+                    <path d="M8 20h.01M12 20h.01M16 20h.01" stroke="#3498db" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  <svg *ngSwitchCase="'Stormy'" viewBox="0 0 24 24" class="weather-svg-mini">
+                    <path d="M19.36 15.37A4.47 4.47 0 0 0 20 13.5a4.5 4.5 0 0 0-7.82-3.1 6 6 0 0 0-10.83 3.6A4.5 4.5 0 0 0 5.5 22h12.83a4.5 4.5 0 0 0 1.03-6.63z" fill="#34495e"/>
+                    <path d="M12 18l-2 2h3l-2 2" stroke="#f1c40f" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+                  </svg>
+                  <svg *ngSwitchCase="'Windy'" viewBox="0 0 24 24" class="weather-svg-mini">
+                    <path d="M2 8h12M2 12h14M2 16h10" fill="none" stroke="#ecf0f1" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  <svg *ngSwitchDefault viewBox="0 0 24 24" class="weather-svg-mini">
+                    <path d="M19.36 15.37A4.47 4.47 0 0 0 20 13.5a4.5 4.5 0 0 0-7.82-3.1 6 6 0 0 0-10.83 3.6A4.5 4.5 0 0 0 5.5 22h12.83a4.5 4.5 0 0 0 1.03-6.63z" fill="#bdc3c7"/>
+                  </svg>
+                </ng-container>
+              </div>
+
+              <!-- High/Low Temp range -->
+              <div class="forecast-temp-range">
+                <span class="forecast-temp max" *ngIf="tempUnit === 'C'">{{ day.maxTempC }}°</span>
+                <span class="forecast-temp max" *ngIf="tempUnit === 'F'">{{ day.maxTempF }}°</span>
+                <span class="forecast-temp min" *ngIf="tempUnit === 'C'">{{ day.minTempC }}°</span>
+                <span class="forecast-temp min" *ngIf="tempUnit === 'F'">{{ day.minTempF }}°</span>
+              </div>
+
+              <div class="forecast-humidity">
+                <svg viewBox="0 0 24 24" class="drop-icon" width="10" height="10">
+                  <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" fill="#3498db"/>
+                </svg>
+                <span>{{ day.humidity }}%</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
