@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: simplebyte-calculator-rs
+  labels:
+    app: calculator
+
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      project: calculator
+  template:
+    metadata:
+      labels:
+        project: calculator
+    spec:
+      containers:
+        - name: simply-byte-calculator
+          image: reachfive/fake-api-server:0.1.1
+          ports:
+            - containerPort: 5000

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+
+metadata:
+  name: my-simplebyte-calculator-pod-2
+  labels:
+    project: calculator
+
+spec:
+  containers:
+    - name: my-simplebyte-calculator
+      image: simplebyte/simplebyte-calculator
+      ports:
+        - containerPort: 8080
