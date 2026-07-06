@@ -1,17 +1,17 @@
-# Day 52: Weather Forecast Dashboard
+# Day 52: Angular Weather Forecast Dashboard
 
-A lightweight, premium weather forecast dashboard built with vanilla HTML, CSS (featuring Glassmorphism, animations, and responsiveness), and modern JavaScript (ES6+ async/await, DOM updates).
+A lightweight, premium weather forecast dashboard built using Angular (standalone component structure, Observables, and Angular HttpClient) and deployed via GitHub Actions to GitHub Pages.
 
 ## Features
-- **Auto-Load**: Fetches meteorological data automatically on page load.
-- **Refresh Data**: Manual fetch reload with active spinning states.
-- **Forecast Count**: Dynamically displays the total count of forecast records (**Bonus 1**).
-- **Row Highlighting**: Highlights scorching days where the temperature exceeds 30°C in glowing red tint (**Bonus 2**).
-- **Responsive Layout**: Adapts gracefully to all screen resolutions (desktop, tablets, and mobile screens).
-- **Clean Loading & Error States**: Displays interactive spinning states and user-friendly error details if the request fails.
+- **Angular Services & Observables**: Fetches weather forecasts cleanly on page load using an Angular HttpClient service (`WeatherService`).
+- **Interactive UI & Loader**: Standard Angular `*ngIf` structural directives manage active loading spinner states and elegant error panels.
+- **Refresh Control**: Leverages event binding (`(click)`) to trigger weather service updates with a rotating refresh icon (**Bonus 3**).
+- **Forecast Count**: Displays total weather dashboard entries in a custom status card (**Bonus 1**).
+- **Row Highlighting**: Utilizes Angular `[class.hot-row]` to identify and highlight scorching days above 30°C (**Bonus 2**).
+- **Fully Responsive**: Crafted with modern Glassmorphic CSS selectors matching both mobile and desktop viewports.
 
 ## Project Details
-- **Tech Stack**: HTML5, Vanilla CSS3 (Custom Variables, Keyframes, Flexbox/Grid), JavaScript (Fetch API, Promises).
+- **Angular Version**: Angular 19+ (with standalone architectures)
 - **API Endpoint**: `https://sampleapi20260706g3-bvdacte9b0dvhudv.canadacentral-01.azurewebsites.net/Weatherforecast`
 - **Deployment URL**: [https://mdabucse.github.io/Genspark/](https://mdabucse.github.io/Genspark/)
 
@@ -24,4 +24,12 @@ A lightweight, premium weather forecast dashboard built with vanilla HTML, CSS (
    ```bash
    cd Genspark/Day-52/Task-1
    ```
-3. Open `index.html` directly in any web browser, or serve it using a local development server (e.g., Live Server in VS Code, or `npx serve .`).
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+4. Start the local development server:
+   ```bash
+   npm run start
+   ```
+5. Open your browser to `http://localhost:4200/`.

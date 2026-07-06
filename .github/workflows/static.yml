@@ -31,13 +31,33 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'Day-52/Task-1/package-lock.json'
+
+      - name: Install dependencies
+        run: |
+          cd Day-52/Task-1
+          npm ci
+
+      - name: Build Angular Application
+        run: |
+          cd Day-52/Task-1
+          npx ng build --configuration production --base-href /Genspark/
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: './Day-52/Task-1'
+          # Upload the Angular build browser output folder
+          path: './Day-52/Task-1/dist/weather-app/browser'
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5

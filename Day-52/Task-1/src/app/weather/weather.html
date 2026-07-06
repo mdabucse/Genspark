@@ -1,0 +1,65 @@
+<div class="dashboard-wrapper">
+  <header class="dashboard-header">
+    <div class="logo-area">
+      <span class="logo-icon">🌤</span>
+      <h1>Weather Forecast Dashboard</h1>
+    </div>
+    <p class="subtitle">Real-time lightweight meteorological reports (Angular Edition)</p>
+  </header>
+
+  <main class="dashboard-content">
+    <div class="controls-bar">
+      <div class="stats-card">
+        <span class="stats-label">Forecast Count</span>
+        <span id="forecastCount" class="stats-value">{{ forecasts.length }}</span>
+      </div>
+      <button id="loadBtn" class="refresh-btn" (click)="loadWeather()" [disabled]="isLoading">
+        <span class="btn-icon" [class.spin]="isRefreshing">🔄</span>
+        <span class="btn-text">Refresh Data</span>
+      </button>
+    </div>
+
+    <!-- Loader element -->
+    <div id="loader" class="loader-container" *ngIf="isLoading">
+      <div class="spinner"></div>
+      <p>Retrieving latest meteorological data...</p>
+    </div>
+
+    <!-- Error message container -->
+    <div id="errorContainer" class="error-container" *ngIf="errorMessage && !isLoading">
+      <span class="error-icon">⚠️</span>
+      <p id="errorMessage">{{ errorMessage }}</p>
+    </div>
+
+    <!-- Weather table -->
+    <div class="table-container" *ngIf="!isLoading && !errorMessage && forecasts.length > 0">
+      <table id="weatherTable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Temperature (C)</th>
+            <th>Temperature (F)</th>
+            <th>Summary</th>
+          </tr>
+        </thead>
+        <tbody id="weatherBody">
+          <tr *ngFor="let item of forecasts" [class.hot-row]="item.temperatureC > 30">
+            <td class="date-cell">{{ item.date | date:'EEE, MMM d, y' }}</td>
+            <td class="temp-c">
+              {{ item.temperatureC }}°C 
+              <span *ngIf="item.temperatureC > 30">🔥</span>
+            </td>
+            <td class="temp-f">{{ item.temperatureF }}°F</td>
+            <td class="summary-cell">
+              <span class="summary-badge">{{ item.summary }}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="dashboard-footer">
+    <p>Data source: GenSpark Meteorological API</p>
+  </footer>
+</div>
