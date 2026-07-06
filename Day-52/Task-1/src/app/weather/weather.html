@@ -11,28 +11,28 @@
     <div class="controls-bar">
       <div class="stats-card">
         <span class="stats-label">Forecast Count</span>
-        <span id="forecastCount" class="stats-value">{{ forecasts.length }}</span>
+        <span id="forecastCount" class="stats-value">{{ forecasts().length }}</span>
       </div>
-      <button id="loadBtn" class="refresh-btn" (click)="loadWeather()" [disabled]="isLoading">
-        <span class="btn-icon" [class.spin]="isRefreshing">🔄</span>
+      <button id="loadBtn" class="refresh-btn" (click)="loadWeather()" [disabled]="isLoading()">
+        <span class="btn-icon" [class.spin]="isRefreshing()">🔄</span>
         <span class="btn-text">Refresh Data</span>
       </button>
     </div>
 
     <!-- Loader element -->
-    <div id="loader" class="loader-container" *ngIf="isLoading">
+    <div id="loader" class="loader-container" *ngIf="isLoading()">
       <div class="spinner"></div>
       <p>Retrieving latest meteorological data...</p>
     </div>
 
     <!-- Error message container -->
-    <div id="errorContainer" class="error-container" *ngIf="errorMessage && !isLoading">
+    <div id="errorContainer" class="error-container" *ngIf="errorMessage() && !isLoading()">
       <span class="error-icon">⚠️</span>
-      <p id="errorMessage">{{ errorMessage }}</p>
+      <p id="errorMessage">{{ errorMessage() }}</p>
     </div>
 
     <!-- Weather table -->
-    <div class="table-container" *ngIf="!isLoading && !errorMessage && forecasts.length > 0">
+    <div class="table-container" *ngIf="!isLoading() && !errorMessage() && forecasts().length > 0">
       <table id="weatherTable">
         <thead>
           <tr>
@@ -43,7 +43,7 @@
           </tr>
         </thead>
         <tbody id="weatherBody">
-          <tr *ngFor="let item of forecasts" [class.hot-row]="item.temperatureC > 30">
+          <tr *ngFor="let item of forecasts()" [class.hot-row]="item.temperatureC > 30">
             <td class="date-cell">{{ item.date | date:'EEE, MMM d, y' }}</td>
             <td class="temp-c">
               {{ item.temperatureC }}°C 

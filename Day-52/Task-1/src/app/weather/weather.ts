@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { WeatherService, WeatherForecast } from '../weather.service';
 
@@ -9,10 +9,10 @@ import { WeatherService, WeatherForecast } from '../weather.service';
   styleUrl: './weather.css',
 })
 export class Weather implements OnInit {
-  forecasts: WeatherForecast[] = [];
-  isLoading = false;
-  errorMessage = '';
-  isRefreshing = false;
+  forecasts = signal<WeatherForecast[]>([]);
+  isLoading = signal(false);
+  errorMessage = signal('');
+  isRefreshing = signal(false);
 
   constructor(private weatherService: WeatherService) {}
 
@@ -21,21 +21,21 @@ export class Weather implements OnInit {
   }
 
   loadWeather(): void {
-    this.isLoading = true;
-    this.errorMessage = '';
-    this.isRefreshing = true;
+    this.isLoading.set(true);
+    this.errorMessage.set('');
+    this.isRefreshing.set(true);
 
     this.weatherService.getForecasts().subscribe({
       next: (data) => {
-        this.forecasts = data;
-        this.isLoading = false;
-        this.isRefreshing = false;
+        this.forecasts.set(data);
+        this.isLoading.set(false);
+        this.isRefreshing.set(false);
       },
       error: (err) => {
-        this.errorMessage = err.message || 'An error occurred while fetching weather data. Please try again.';
-        this.isLoading = false;
-        this.isRefreshing = false;
-        this.forecasts = [];
+        this.errorMessage.set(err.message || 'An error occurred while fetching weather data. Please try again.');
+        this.isLoading.set(false);
+        this.isRefreshing.set(false);
+        this.forecasts.set([]);
       }
     });
   }
