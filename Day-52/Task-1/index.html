@@ -3,34 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather Forecast</title>
-
+    <title>Weather Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-    <div class="container">
-        <h1>🌤 Weather Forecast</h1>
+    <div class="dashboard-wrapper">
+        <header class="dashboard-header">
+            <div class="logo-area">
+                <span class="logo-icon">🌤</span>
+                <h1>Weather Forecast Dashboard</h1>
+            </div>
+            <p class="subtitle">Real-time lightweight meteorological reports</p>
+        </header>
 
-        <button id="loadBtn">Load Weather Data</button>
+        <main class="dashboard-content">
+            <div class="controls-bar">
+                <div class="stats-card">
+                    <span class="stats-label">Forecast Count</span>
+                    <span id="forecastCount" class="stats-value">0</span>
+                </div>
+                <button id="loadBtn" class="refresh-btn">
+                    <span class="btn-icon">🔄</span>
+                    <span class="btn-text">Refresh Data</span>
+                </button>
+            </div>
 
-        <table id="weatherTable">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Temperature (°C)</th>
-                    <th>Temperature (°F)</th>
-                    <th>Summary</th>
-                </tr>
-            </thead>
+            <!-- Loader element -->
+            <div id="loader" class="loader-container hidden">
+                <div class="spinner"></div>
+                <p>Retrieving latest meteorological data...</p>
+            </div>
 
-            <tbody id="weatherBody">
+            <!-- Error message container -->
+            <div id="errorContainer" class="error-container hidden">
+                <span class="error-icon">⚠️</span>
+                <p id="errorMessage">Unable to fetch forecast data. Please try again later.</p>
+            </div>
 
-            </tbody>
-        </table>
+            <div class="table-container">
+                <table id="weatherTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Temperature (C)</th>
+                            <th>Temperature (F)</th>
+                            <th>Summary</th>
+                        </tr>
+                    </thead>
+                    <tbody id="weatherBody">
+                        <!-- Dynamic rows injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+
+        <footer class="dashboard-footer">
+            <p>Data source: GenSpark Meteorological API</p>
+        </footer>
     </div>
 
     <script src="script.js"></script>
-
 </body>
 </html>
